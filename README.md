@@ -1,0 +1,2 @@
+# ENScanGo
+ENScan Go版
