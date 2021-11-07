@@ -8,5 +8,6 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/tidwall/gjson v1.11.0
 	github.com/tidwall/sjson v1.2.3
+	github.com/xuri/excelize/v2 v2.4.1
 	golang.org/x/net v0.0.0-20211104170005-ce137452f963
 )

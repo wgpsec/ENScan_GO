@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/requests"
 	"io/ioutil"
@@ -27,9 +28,11 @@ func GetReq(url string) []byte {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		gologger.Fatalf("请求发生错误，请检查网络连接\n%s\n", err)
+		fmt.Println("ERROR TRY")
 		time.Sleep(5)
-		GetReq(url)
+		return GetReq(url)
+		//gologger.Fatalf("请求发生错误，请检查网络连接\n%s\n", err)
+
 	}
 	if resp.StatusCode == 403 {
 		gologger.Fatalf("ip被禁止访问网站，请更换ip\n")

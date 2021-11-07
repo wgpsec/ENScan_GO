@@ -1,5 +1,8 @@
 package aiqicha
 
+/* Aiqicha By Keac
+ * admin@wgpsec.org
+ */
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
@@ -7,6 +10,8 @@ import (
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
+	"github.com/wgpsec/ENScan/common/utils"
+	"github.com/xuri/excelize/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -34,10 +39,14 @@ func GetEnInfoByPid(pid string) {
 	//获取公司基本信息
 	res := GetCompanyInfoById(pid)
 	//查询对外投资详细信息
-	if res.ensMap["invest"].total > 0 {
+	if res.ensMap["invest"].total > 0 && false {
 		res.investInfos = make(map[string]EnInfo)
 		for _, t := range res.infos["invest"] {
 			fmt.Println(t.Get("entName").String() + t.Get("regRate").String())
+			//openStatus := t.Get("openStatus").String()
+			//if openStatus == "注销" || openStatus == "吊销" {
+			//	continue
+			//}
 			investNum := 0.00
 			if t.Get("regRate").String() == "-" {
 				investNum = -1
@@ -49,21 +58,70 @@ func GetEnInfoByPid(pid string) {
 				n := GetCompanyInfoById(t.Get("pid").String())
 				res.investInfos[t.Get("pid").String()] = n
 			}
-
 		}
-
 	}
+
 	//查询分支机构公司详细信息
-	if res.ensMap["branch"].total > 0 {
+	if res.ensMap["branch"].total > 0 && false {
+		res.branchInfos = make(map[string]EnInfo)
 		for _, t := range res.infos["branch"] {
-			fmt.Println(t.Str)
+			fmt.Println(t.Get("entName").String() + t.Get("openStatus").String())
+			n := GetCompanyInfoById(t.Get("pid").String())
+			res.branchInfos[t.Get("pid").String()] = n
 		}
+	}
+
+	//导出
+	outPutExcelByEnInfo(res)
+
+}
+
+func outPutExcelByEnInfo(enInfo EnInfo) {
+	f := excelize.NewFile()
+	//Base info
+	baseHeaders := []string{"信息", "值"}
+	baseData := [][]interface{}{
+		{"PID", enInfo.Pid},
+		{"企业名称", enInfo.EntName},
+		{"法人代表", enInfo.legalPerson},
+		{"开业状态", enInfo.openStatus},
+		{"电话", enInfo.telephone},
+		{"邮箱", enInfo.email},
+	}
+	f, _ = utils.ExportExcel("基本信息", baseHeaders, baseData, f)
+
+	for k, s := range enInfo.ensMap {
+		if s.total > 0 && s.api != "" {
+			fmt.Println(s.name)
+			headers := s.keyWord
+			var data [][]interface{}
+			for _, y := range enInfo.infos[k] {
+				results := gjson.GetMany(y.Raw, s.field...)
+				var str []interface{}
+				for _, s := range results {
+					str = append(str, s.String())
+				}
+				data = append(data, str)
+
+			}
+			fmt.Println(data)
+			f, _ = utils.ExportExcel(s.name, headers, data, f)
+		}
+	}
+
+	f.DeleteSheet("Sheet1")
+	// Save spreadsheet by the given path.
+	savaPath := "res/" +
+		time.Now().Format("2006-01-02") +
+		enInfo.EntName + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
+	if err := f.SaveAs(savaPath); err != nil {
+		fmt.Println(err)
 	}
 
 }
 
+// GetCompanyInfoById 获取公司基本信息
 func GetCompanyInfoById(pid string) EnInfo {
-	//获取公司基本信息
 	var enInfo EnInfo
 	enInfo.infos = make(map[string][]gjson.Result)
 	urls := "https://aiqicha.baidu.com/company_detail_" + pid
@@ -78,17 +136,22 @@ func GetCompanyInfoById(pid string) EnInfo {
 	enInfo.email = res.Get("email").String()
 	gologger.Printf("企业基本信息\n")
 	data := [][]string{
-		[]string{"PID", enInfo.Pid},
-		[]string{"企业名称", enInfo.EntName},
-		[]string{"法人代表", enInfo.legalPerson},
-		[]string{"开业状态", enInfo.openStatus},
-		[]string{"电话", enInfo.telephone},
-		[]string{"邮箱", enInfo.email},
+		{"PID", enInfo.Pid},
+		{"企业名称", enInfo.EntName},
+		{"法人代表", enInfo.legalPerson},
+		{"开业状态", enInfo.openStatus},
+		{"电话", enInfo.telephone},
+		{"邮箱", enInfo.email},
 	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.AppendBulk(data)
 	table.Render()
+
+	//判断企业状态，不然就可以跳过了
+	if enInfo.openStatus == "注销" || enInfo.openStatus == "吊销" {
+		return enInfo
+	}
 
 	//获取企业信息
 	enInfoUrl := "https://aiqicha.baidu.com/compdata/navigationListAjax?pid=" + pid
@@ -113,11 +176,11 @@ func GetCompanyInfoById(pid string) EnInfo {
 	//赋值API数据
 	ensInfoMap["webRecord"].api = "detail/icpinfoAjax"
 	ensInfoMap["webRecord"].field = []string{"domain", "siteName", "homeSite", "icpNo"}
-	ensInfoMap["webRecord"].keyWord = []string{"域名", "站点名称", "首页", "ICP备案号", "公司名称"}
+	ensInfoMap["webRecord"].keyWord = []string{"域名", "站点名称", "首页", "ICP备案号"}
 
 	ensInfoMap["appinfo"].api = "c/appinfoAjax"
-	ensInfoMap["appinfo"].field = []string{"name", "classify", "logoWord", "logo", "logoBrief", "entName"}
-	ensInfoMap["appinfo"].keyWord = []string{"APP名称", "分类", "LOGO文字", "LOGO地址", "描述", "所属公司"}
+	ensInfoMap["appinfo"].field = []string{"name", "classify", "logoWord", "logoBrief", "entName"}
+	ensInfoMap["appinfo"].keyWord = []string{"APP名称", "分类", "LOGO文字", "描述", "所属公司"}
 
 	ensInfoMap["microblog"].api = "c/microblogAjax"
 	ensInfoMap["microblog"].field = []string{"nickname", "weiboLink", "logo"}
@@ -148,13 +211,15 @@ func GetCompanyInfoById(pid string) EnInfo {
 	ensInfoMap["branch"].keyWord = []string{"公司名称", "状态", "数据信息"}
 
 	enInfo.ensMap = ensInfoMap
+
 	//获取数据
 	for k, s := range ensInfoMap {
 		if s.total > 0 && s.api != "" {
 			fmt.Println(s.name)
 			t := getInfoList(res.Get("pid").String(), s.api)
+
+			//判断下网站备案，然后提取出来，留个坑看看有没有更好的解决方案
 			if k == "webRecord" {
-				//判断下网站备案，然后提取出来，留个坑看看有没有更好的解决方案
 				var tmp []gjson.Result
 				for _, y := range t {
 					for _, o := range y.Get("domain").Array() {
@@ -164,11 +229,10 @@ func GetCompanyInfoById(pid string) EnInfo {
 				}
 				t = tmp
 			}
-
+			//保存数据
 			enInfo.infos[k] = t
-			//防止速度太快
-			time.Sleep(1000)
-			//命令输出
+
+			//命令输出展示
 			table := tablewriter.NewWriter(os.Stdout)
 			table.SetHeader(ensInfoMap[k].keyWord)
 			for _, y := range t {
@@ -183,12 +247,13 @@ func GetCompanyInfoById(pid string) EnInfo {
 
 		}
 	}
+
 	return enInfo
 
 }
 
+// getInfoList 获取信息列表
 func getInfoList(pid string, types string) []gjson.Result {
-	//获取信息列表
 	urls := "https://aiqicha.baidu.com/" + types + "?size=100&pid=" + pid
 	content := common.GetReq(urls)
 	var listData []gjson.Result
@@ -215,6 +280,7 @@ func getInfoList(pid string, types string) []gjson.Result {
 
 }
 
+// SearchName 根据企业名称搜索信息
 func SearchName(name string) []gjson.Result {
 	urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + name + "&p=1&s=10&t=0"
 	content := common.GetReq(urls)
