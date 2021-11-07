@@ -41,9 +41,9 @@ func GetEnInfoByPid(options *common.ENOptions) {
 	pid := ""
 	if options.CompanyID == "" {
 		SearchName(options)
-	} else {
-		pid = options.CompanyID
 	}
+	pid = options.CompanyID
+	gologger.Infof("查询PID %s\n", pid)
 
 	//获取公司信息
 	res := getCompanyInfoById(pid, true, options)
