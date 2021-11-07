@@ -124,9 +124,9 @@ func log(level Level, label string, format string, args ...interface{}) {
 		mutex.Lock()
 		switch level {
 		case Silent:
-			fmt.Fprint(os.Stdout, sb.String())
+			_, _ = fmt.Fprint(os.Stdout, sb.String())
 		default:
-			fmt.Fprint(output, sb.String())
+			_, _ = fmt.Fprint(output, sb.String())
 		}
 		mutex.Unlock()
 

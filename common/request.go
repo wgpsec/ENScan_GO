@@ -1,15 +1,14 @@
 package common
 
 import (
-	"fmt"
-	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/requests"
+	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-func GetReq(url string) []byte {
+func GetReq(url string, options *ENOptions) []byte {
 	var transport = requests.DefaultTransport()
 	var client = &http.Client{
 		Transport: transport,
@@ -20,19 +19,17 @@ func GetReq(url string) []byte {
 	}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header = http.Header{
-		"User-Agent": []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"},
-		"Accept":     []string{"text/html, application/xhtml+xml, image/jxr, */*"},
-		"Cookie":     []string{""},
-		//"Accept-Encoding": []string{"gzip, deflate"},
-		"Referer": []string{"https://www.baidu.com"},
+		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"},
+		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},
+		"Cookie":     {options.CookieInfo},
+		//"Accept-Encoding": {"gzip, deflate"},
+		"Referer": {"https://www.baidu.com"},
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("ERROR TRY")
-		time.Sleep(5)
-		return GetReq(url)
-		//gologger.Fatalf("请求发生错误，请检查网络连接\n%s\n", err)
-
+		gologger.Errorf("请求发生错误，5秒后重试\n%s\n", err)
+		time.Sleep(5 * time.Second)
+		return GetReq(url, options)
 	}
 	if resp.StatusCode == 403 {
 		gologger.Fatalf("ip被禁止访问网站，请更换ip\n")

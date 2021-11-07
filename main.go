@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/wgpsec/ENScan/internal/aiqicha"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/runner"
 )
 
 func main() {
-	//options := common.ParseOptions()
-
-	aiqicha.GetEnInfoByPid(aiqicha.SearchName("小米")[0].Get("pid").String())
+	var enOptions common.ENOptions
+	common.Flag(&enOptions)
+	common.Parse(&enOptions)
+	runner.RunEnumeration(&enOptions)
 }
