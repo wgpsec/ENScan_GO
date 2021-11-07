@@ -4,7 +4,6 @@ package aiqicha
  * admin@wgpsec.org
  */
 import (
-	"fmt"
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -35,14 +34,16 @@ func pageParseJson(content string) gjson.Result {
 	return gjson.Result{}
 }
 
+// GetEnInfoByPid 根据PID获取公司信息
+// pid 爱企查pid参数
 func GetEnInfoByPid(pid string) {
 	//获取公司基本信息
 	res := GetCompanyInfoById(pid)
 	//查询对外投资详细信息
-	if res.ensMap["invest"].total > 0 && false {
+	if res.ensMap["invest"].total > 0 {
 		res.investInfos = make(map[string]EnInfo)
 		for _, t := range res.infos["invest"] {
-			fmt.Println(t.Get("entName").String() + t.Get("regRate").String())
+			gologger.Infof("企业名称：%s 投资占比：%s\n", t.Get("entName"), t.Get("regRate"))
 			//openStatus := t.Get("openStatus").String()
 			//if openStatus == "注销" || openStatus == "吊销" {
 			//	continue
@@ -62,16 +63,16 @@ func GetEnInfoByPid(pid string) {
 	}
 
 	//查询分支机构公司详细信息
-	if res.ensMap["branch"].total > 0 && false {
+	if res.ensMap["branch"].total > 0 {
 		res.branchInfos = make(map[string]EnInfo)
 		for _, t := range res.infos["branch"] {
-			fmt.Println(t.Get("entName").String() + t.Get("openStatus").String())
+			gologger.Infof("分支名称：%s 状态：%s\n", t.Get("entName"), t.Get("openStatus"))
 			n := GetCompanyInfoById(t.Get("pid").String())
 			res.branchInfos[t.Get("pid").String()] = n
 		}
 	}
 
-	//导出
+	//导出 【2021.11.7】 暂时还不能一起投资的企业和分支机构的其他信息
 	outPutExcelByEnInfo(res)
 
 }
@@ -92,7 +93,7 @@ func outPutExcelByEnInfo(enInfo EnInfo) {
 
 	for k, s := range enInfo.ensMap {
 		if s.total > 0 && s.api != "" {
-			fmt.Println(s.name)
+			gologger.Infof("正在导出%s\n", s.name)
 			headers := s.keyWord
 			var data [][]interface{}
 			for _, y := range enInfo.infos[k] {
@@ -102,9 +103,7 @@ func outPutExcelByEnInfo(enInfo EnInfo) {
 					str = append(str, s.String())
 				}
 				data = append(data, str)
-
 			}
-			fmt.Println(data)
 			f, _ = utils.ExportExcel(s.name, headers, data, f)
 		}
 	}
@@ -115,8 +114,9 @@ func outPutExcelByEnInfo(enInfo EnInfo) {
 		time.Now().Format("2006-01-02") +
 		enInfo.EntName + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
 	if err := f.SaveAs(savaPath); err != nil {
-		fmt.Println(err)
+		gologger.Fatalf("导出失败：%s", err)
 	}
+	gologger.Infof("导出成功路径： %s\n", savaPath)
 
 }
 
@@ -134,7 +134,7 @@ func GetCompanyInfoById(pid string) EnInfo {
 	enInfo.openStatus = res.Get("openStatus").String()
 	enInfo.telephone = res.Get("telephone").String()
 	enInfo.email = res.Get("email").String()
-	gologger.Printf("企业基本信息\n")
+	gologger.Infof("企业基本信息\n")
 	data := [][]string{
 		{"PID", enInfo.Pid},
 		{"企业名称", enInfo.EntName},
@@ -215,7 +215,7 @@ func GetCompanyInfoById(pid string) EnInfo {
 	//获取数据
 	for k, s := range ensInfoMap {
 		if s.total > 0 && s.api != "" {
-			fmt.Println(s.name)
+			gologger.Infof("正在查询 %s\n", s.name)
 			t := getInfoList(res.Get("pid").String(), s.api)
 
 			//判断下网站备案，然后提取出来，留个坑看看有没有更好的解决方案
@@ -267,7 +267,7 @@ func getInfoList(pid string, types string) []gjson.Result {
 		pageCount := data.Get("pageCount").Int()
 		if pageCount > 1 {
 			for i := 1; int(pageCount) >= i; i++ {
-				fmt.Printf("当前：%s,%d\n", types, i)
+				gologger.Infof("当前：%s,%d\n", types, i)
 				reqUrls := urls + "&p=" + strconv.Itoa(i)
 				content = common.GetReq(reqUrls)
 				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
@@ -285,6 +285,7 @@ func SearchName(name string) []gjson.Result {
 	urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + name + "&p=1&s=10&t=0"
 	content := common.GetReq(urls)
 	enList := gjson.Get(string(content), "data.resultList").Array()
+	gologger.Infof("关键词：“%s” 查询到 %d 个结果 \n", name, len(enList))
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"PID", "企业名称", "法人代表"})
 	for _, v := range enList {
