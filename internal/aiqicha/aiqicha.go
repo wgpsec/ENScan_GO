@@ -43,6 +43,9 @@ func GetEnInfoByPid(options *common.ENOptions) {
 		SearchName(options)
 	}
 	pid = options.CompanyID
+	if pid == "" {
+		gologger.Fatalf("没有获取到PID\n")
+	}
 	gologger.Infof("查询PID %s\n", pid)
 
 	//获取公司信息
@@ -301,7 +304,13 @@ func SearchName(options *common.ENOptions) []gjson.Result {
 	urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + name + "&p=1&s=10&t=0"
 	content := common.GetReq(urls, options)
 	enList := gjson.Get(string(content), "data.resultList").Array()
-	gologger.Infof("关键词：“%s” 查询到 %d 个结果，自动选择第一个 \n", name, len(enList))
+
+	if len(enList) == 0 {
+		gologger.Errorf("没有查询到关键词 “%s” ", name)
+		return enList
+	} else {
+		gologger.Infof("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", name, len(enList))
+	}
 	options.CompanyID = enList[0].Get("pid").String()
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"PID", "企业名称", "法人代表"})
