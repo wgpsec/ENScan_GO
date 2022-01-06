@@ -1,4 +1,1 @@
-# ENScanGo
-ENScan Go版
-
-测试版
+# ENScan_GO
