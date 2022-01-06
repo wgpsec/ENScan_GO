@@ -147,3 +147,12 @@ Eg：快速收集小米相关信息 默认收集：企业基本信息、微博�
 
 [![asciicast](https://asciinema.org/a/460255.svg)](https://asciinema.org/a/460255)
 
+
+
+###  交流
+
+关注公众号 `WgpSec狼组安全团队` 回复`加群`一起交流~
+
+![](https://assets.wgpsec.org/www/images/wechat.png)
+
+[![Stargazers over time](https://starchart.cc/wgpsec/ENScan_GO.svg)](https://starchart.cc/wgpsec/ENScan_GO)
