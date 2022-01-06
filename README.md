@@ -1,7 +1,7 @@
 
 # ENScan_GO
 
-ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升级版本，为避免滥用导致API失效，目前仅开源部分代码供参考！
+ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升级版本，为避免滥用导致API失效，目前**仅开源部分代码！**
 
 ![](https://shields.io/badge/Go-1.17-green?logo=go)
 
@@ -146,6 +146,12 @@ Eg：快速收集小米相关信息 默认收集：企业基本信息、微博�
 ![image-20220106224603776](README/image-20220106224603776.png)
 
 [![asciicast](https://asciinema.org/a/460255.svg)](https://asciinema.org/a/460255)
+
+#### 使用天眼查数据源
+
+```
+ ./ENScanPublic_amd64_linux -n 小米 -type tyc
+```
 
 
 
