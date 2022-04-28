@@ -37,7 +37,7 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升
     - 企查查（暂未开放）
     - 阿拉丁
     - 酷安
-    - 小蓝本（暂无办法破解签名，有兴趣大佬一起交流~）
+    - 小蓝本（暂未开放）
 
  - 查询信息
     - ICP备案
@@ -57,15 +57,20 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升
 命令行参数如下
 ```
   -branch 查询分支机构（分公司）信息
-  -f keyword.txt 包含公司关键词的文件一行一个
-  -field website,weibo,wechat 获取字段信息 eg website
+  -delay int 每个请求延迟（S）-1为随机延迟1-5S (default 1)
+  -f string 包含公司关键词的文件一行一个
+  -field string 获取字段信息 eg website
   -i string 公司ID（根据你查询的type不同ID不同）
-  -invest-num 100 投资比例 eg 100
+  -invest-num int 投资比例 eg 100
   -invest-rd 投资比例不明确（可能不是完全控股）
+  -is-branch 查询分支机构（分公司）详细信息ICP备案APP等
+  -is-debug 是否显示debug详细信息
   -is-group 查询集团信息
+  -is-merge 是否合并导出
   -is-pid 批量查询文件是否为PID
-  -n 小米 公司名称关键词 eg 小米
-  -type string 收集渠道信息（默认爱企查） (default "aqc")
+  -n string 公司名称关键词 eg 小米
+  -o string 结果输出的文件夹位置(可选)
+  -type string 收集渠道信息（默认爱企查）eg qcc (default "aqc") all为收集全部
   -v    版本信息
 ```
 
