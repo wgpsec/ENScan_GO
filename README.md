@@ -77,7 +77,8 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升
 字段支持:
 
 ```
-"website", "weibo", "wechat", "app", "weibo", "job", "wp", "copyright"
+"icp", "weibo", "wechat", "app", "weibo", "job", "wp", "copyright"
+v0.0.4 开始 website已改为icp！！！
 ```
 
 #### 快速使用
