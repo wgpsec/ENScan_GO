@@ -117,6 +117,25 @@ func GetEmails(f *excelize.File, options *common.ENOptions) {
 func MergeOutPut(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, info string, options *common.ENOptions) map[string][][]interface{} {
 	gologger.Infof("%s【%s】信息合并\n", info, ensInfos.Name)
 
+	//if ensInfos.SType == "TYC" {
+	//	for k, s := range ensInfos.Infoss {
+	//		ENSMapList[k] = ensMap[k]
+	//		var data [][]interface{}
+	//		for _, y := range s {
+	//			var str []interface{}
+	//			for _, t := range ensMap[k].Field {
+	//				str = append(str, y[t])
+	//			}
+	//			if !options.IsApiMode {
+	//				str = append(str, info+"【"+ensInfos.Name+"】")
+	//			} else {
+	//				str = append(str, info)
+	//			}
+	//			data = append(data, str)
+	//		}
+	//		EnsInfosList[k] = append(EnsInfosList[k], data...)
+	//	}
+	//} else {
 	for k, s := range ensInfos.Infos {
 		ENSMapList[k] = ensMap[k]
 		var data [][]interface{}
@@ -460,7 +479,13 @@ func OutPutExcelByMergeEnInfo(options *common.ENOptions) {
 		}
 	}
 	// Save spreadsheet by the given path.
-	savaPath := tmp + "/【合并】" + options.CompanyName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
+	fileName := ""
+	if len([]rune(options.CompanyName)) > 20 {
+		fileName = options.KeyWord
+	} else {
+		fileName = options.CompanyName
+	}
+	savaPath := tmp + "/【合并】" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
 	if err := f.SaveAs(savaPath); err != nil {
 		gologger.Fatalf("导出失败：%s", err)
 	}
@@ -479,6 +504,21 @@ func OutPutExcelByEnInfo(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, op
 	if ensInfos.Name != "" && !options.IsApiMode {
 		f := excelize.NewFile()
 		gologger.Infof("【%s】导出中\n", ensInfos.Name)
+		//if ensInfos.SType == "TYC" {
+		//	for k, s := range ensInfos.Infoss {
+		//		gologger.Infof("正在导出%s\n", ensMap[k].Name)
+		//		headers := ensMap[k].KeyWord
+		//		var data [][]interface{}
+		//		for _, y := range s {
+		//			var str []interface{}
+		//			for _, t := range ensMap[k].Field {
+		//				str = append(str, y[t])
+		//			}
+		//			data = append(data, str)
+		//		}
+		//		f, _ = utils.ExportExcel(ensMap[k].Name, headers, data, f)
+		//	}
+		//} else {
 		for k, s := range ensInfos.Infos {
 			gologger.Infof("正在导出%s\n", ensMap[k].Name)
 			headers := ensMap[k].KeyWord
@@ -493,6 +533,7 @@ func OutPutExcelByEnInfo(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, op
 			}
 			f, _ = utils.ExportExcel(ensMap[k].Name, headers, data, f)
 		}
+		//}
 		f.DeleteSheet("Sheet1")
 
 		tmp := options.Output
@@ -505,7 +546,13 @@ func OutPutExcelByEnInfo(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, op
 			}
 		}
 		// Save spreadsheet by the given path.
-		savaPath := tmp + "/" + ensInfos.Name + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
+		fileName := ""
+		if len([]rune(ensInfos.Name)) > 20 {
+			fileName = options.KeyWord
+		} else {
+			fileName = ensInfos.Name
+		}
+		savaPath := tmp + "/" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
 		if err := f.SaveAs(savaPath); err != nil {
 			gologger.Fatalf("导出失败：%s", err)
 		}
