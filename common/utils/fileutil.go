@@ -21,6 +21,18 @@ func FolderExists(folderpath string) bool {
 	return !os.IsNotExist(err)
 }
 
+// PathExists 判断文件/文件夹是否存在
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // HasStdin determines if the user has piped input
 func HasStdin() bool {
 	stat, err := os.Stdin.Stat()

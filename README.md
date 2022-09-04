@@ -1,7 +1,9 @@
 
 # ENScan_GO
 
-ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升级版本，为避免滥用导致API失效，目前**仅开源部分代码！**
+ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的GO升级版本
+
+**仅用于学习参考，请勿遵守相关法律规定**
 
 ![](https://shields.io/badge/Go-1.17-green?logo=go)
 
@@ -34,10 +36,9 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升
  - 使用支持以下API，并支持合并数据导出
     - 爱企查
     - 天眼查
-    - 企查查（暂未开放）
     - 阿拉丁
     - 酷安
-    - 小蓝本（暂未开放）
+    - 七麦数据
 
  - 查询信息
     - ICP备案
@@ -61,7 +62,7 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的升
   -f string 包含公司关键词的文件一行一个
   -field string 获取字段信息 eg website
   -i string 公司ID（根据你查询的type不同ID不同）
-  -invest-num int 投资比例 eg 100
+  -invest int 投资比例 eg 100
   -invest-rd 投资比例不明确（可能不是完全控股）
   -is-branch 查询分支机构（分公司）详细信息ICP备案APP等
   -is-debug 是否显示debug详细信息
@@ -138,7 +139,7 @@ Eg：快速收集小米相关信息 默认收集：企业基本信息、微博�
 #### 只想获取备案信息
 
 ```shell
-./ENScanPublic_amd64_linux -n 小米  -field website
+./ENScanPublic_amd64_linux -n 小米  -field icp
 ```
 
 [![asciicast](https://asciinema.org/a/460252.svg)](https://asciinema.org/a/460252)
@@ -146,7 +147,7 @@ Eg：快速收集小米相关信息 默认收集：企业基本信息、微博�
 #### 获取占股100的子公司下所有ICP备案网站
 
 ```
-./ENScanPublic_amd64_linux -n 小米通讯 -invest-num 100 -field website
+./ENScanPublic_amd64_linux -n 小米通讯 -invest-num 100 -field icp
 ```
 
 ![image-20220106224603776](README/image-20220106224603776.png)

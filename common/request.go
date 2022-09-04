@@ -1,46 +1,47 @@
 package common
 
 import (
-	"github.com/wgpsec/ENScan/common/requests"
+	"github.com/go-resty/resty/v2"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
-	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-func GetReq(url string, options *ENOptions) []byte {
-	var transport = requests.DefaultTransport()
-	var client = &http.Client{
-		Transport: transport,
-		//Timeout:       time.Duration(options.Timeout),
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse /* 不进入重定向 */
-		},
+func GetReq(url string, options *ENOptions) string {
+	client := resty.New()
+	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
+	if options.Proxy != "" {
+		client.SetProxy(options.Proxy)
 	}
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header = http.Header{
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"},
+
+	client.Header = http.Header{
+		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
 		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},
-		"Cookie":     {options.CookieInfo},
-		//"Accept-Encoding": {"gzip, deflate"},
-		"Referer": {"https://www.baidu.com"},
+		"Cookie":     {options.ENConfig.Cookies.Aiqicha},
+		"Referer":    {"https://aifanfan.baidu.com/"},
 	}
-	resp, err := client.Do(req)
+	resp, err := client.R().Get(url)
+
 	if err != nil {
-		gologger.Errorf("请求发生错误，5秒后重试\n%s\n", err)
+		if options.Proxy != "" {
+			client.RemoveProxy()
+		}
+		gologger.Errorf("【AQC】请求发生错误， %s 5秒后重试\n%s\n", url, err)
 		time.Sleep(5 * time.Second)
 		return GetReq(url, options)
 	}
-	if resp.StatusCode == 403 {
-		gologger.Fatalf("ip被禁止访问网站，请更换ip\n")
-	} else if resp.StatusCode == 401 {
-		gologger.Fatalf("Cookie有问题或过期，请重新获取\n")
-	} else if resp.StatusCode == 302 {
-		gologger.Fatalf("需要更新Cookie\n")
+	if resp.StatusCode() == 200 {
+		return string(resp.Body())
+	} else if resp.StatusCode() == 403 {
+		gologger.Errorf("【AQC】ip被禁止访问网站，请更换ip\n")
+	} else if resp.StatusCode() == 401 {
+		gologger.Errorf("【AQC】Cookie有问题或过期，请重新获取\n")
+	} else if resp.StatusCode() == 302 {
+		gologger.Errorf("【AQC】需要更新Cookie\n")
+	} else if resp.StatusCode() == 404 {
+		gologger.Errorf("【AQC】请求错误 404 %s \n", url)
+	} else {
+		gologger.Errorf("【AQC】未知错误 %s\n", resp.StatusCode())
 	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	//page, _ := htmlquery.Parse(strings.NewReader(string(body)))
-	return body
+	return ""
 }

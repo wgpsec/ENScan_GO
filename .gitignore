@@ -11,9 +11,10 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-
+config.yaml
 /res
 /out
+/Report
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
