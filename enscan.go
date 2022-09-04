@@ -1,12 +1,19 @@
 package main
 
+/*
+ * BY WgpSec Keac~
+ * 如果你也有兴趣一起写点好玩的东西，欢迎加入我们团队~
+ */
+import (
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/db"
+	"github.com/wgpsec/ENScan/runner"
+)
+
 import (
 	"github.com/adjust/rmq/v4"
 	"github.com/wgpsec/ENScan/api"
-	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
-	"github.com/wgpsec/ENScan/db"
-	"github.com/wgpsec/ENScan/runner"
 	"log"
 	"os"
 	"os/signal"

@@ -28,6 +28,8 @@ ENScanGo 是现有开源项目 [ENScan](https://github.com/wgpsec/ENScan) 的GO�
     <a href="https://github.com/wgpsec/ENScan_GO/issues">提交需求</a>
   </p>
 
+**使用本程序可能导致账号被封，请谨慎操作**
+
 
 
 
