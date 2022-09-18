@@ -328,7 +328,7 @@ func getInfoList(pid string, types string, s *EnsGo, options *common.ENOptions) 
 	urls := "https://capi.tianyancha.com/" + types + "?_=" + strconv.Itoa(int(time.Now().Unix()))
 
 	if data == "" {
-		urls += "&pageSize=10&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=1" + s.gsData
+		urls += "&pageSize=100&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=1" + s.gsData
 	} else {
 		data, _ = sjson.Set(data, "gid", pid)
 		data, _ = sjson.Set(data, "pageSize", 100)
