@@ -12,7 +12,6 @@ import (
 	"github.com/wgpsec/ENScan/common/utils"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"golang.org/x/net/html"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -279,9 +278,25 @@ func SearchBaseInfoByTables(pid string, ensMap map[string]*EnsGo, options *commo
 
 func SearchName(options *common.ENOptions) ([]gjson.Result, string) {
 	name := options.KeyWord
-	urls := "https://sp0.tianyancha.com/search/suggestV2.json?key=" + url.QueryEscape(name)
-	content := common.GetReq(urls, options)
-	enList := gjson.Get(content, "data").Array()
+	//使用关键词推荐方法进行检索，会出现信息不对的情况
+	//urls := "https://sp0.tianyancha.com/search/suggestV2.json?key=" + url.QueryEscape(name)
+	urls := "https://capi.tianyancha.com/cloud-tempest/web/searchCompanyV3"
+	searchData := map[string]string{
+		"key":      name,
+		"pageNum":  "1",
+		"pageSize": "20",
+		"referer":  "search",
+		"sortType": "0",
+		"word":     name,
+	}
+	marshal, err := json.Marshal(searchData)
+	if err != nil {
+		gologger.Errorf("[ERROR]TYC 关键词JSON错误")
+		return nil, ""
+	}
+	content := GetReq(urls, string(marshal), options)
+	enList := gjson.Get(content, "data.companyList").Array()
+
 	if len(enList) == 0 {
 		gologger.Errorf("没有查询到关键词 “%s” ", name)
 		return enList, ""
@@ -290,13 +305,13 @@ func SearchName(options *common.ENOptions) ([]gjson.Result, string) {
 	}
 	if options.IsShow {
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"GraphId", "企业名称"})
+		table.SetHeader([]string{"PID", "企业名称"})
 		for _, v := range enList {
-			table.Append([]string{v.Get("graphId").String(), v.Get("comName").String()})
+			table.Append([]string{v.Get("id").String(), utils.DName(v.Get("name").String())})
 		}
 		table.Render()
 	}
-	return enList, enList[0].Get("graphId").String()
+	return enList, enList[0].Get("id").String()
 }
 
 func JudgePageNumWithCookie(page *html.Node) int {
