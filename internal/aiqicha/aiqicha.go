@@ -228,7 +228,7 @@ func getCompanyInfoById(pid string, deep int, isEnDetail bool, inFrom string, se
 		// 不查询下层信息
 		if ensInfoMap["holds"].total > 0 && options.IsHold {
 			if len(tmpEIS["holds"]) == 0 {
-				gologger.Infof("需要登陆才能查询控股公司！\n")
+				gologger.Infof("【无控股信息】，需要账号开通【超级会员】！\n")
 			} else {
 				for _, t := range tmpEIS["holds"] {
 					if t.Get("inFrom").String() == "" {

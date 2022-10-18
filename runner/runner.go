@@ -160,12 +160,12 @@ func RunJob(options *common.ENOptions) {
 		if options.CompanyID == "" || (options.CompanyID != "" && utils.CheckPid(options.CompanyID) == "aqc") {
 			wg.Add(1)
 			go func() {
-				defer func() {
-					if x := recover(); x != nil {
-						gologger.Errorf("[QCC] ERROR: %v", x)
-						wg.Done()
-					}
-				}()
+				//defer func() {
+				//	if x := recover(); x != nil {
+				//		gologger.Errorf("[QCC] ERROR: %v", x)
+				//		wg.Done()
+				//	}
+				//}()
 				//查询企业信息
 				res, ensOutMap := aiqicha.GetEnInfoByPid(options)
 
@@ -217,12 +217,12 @@ func RunJob(options *common.ENOptions) {
 	if utils.IsInList("coolapk", options.GetType) {
 		wg.Add(1)
 		go func() {
-			defer func() {
-				if x := recover(); x != nil {
-					gologger.Errorf("[QCC] ERROR: %v", x)
-					wg.Done()
-				}
-			}()
+			//defer func() {
+			//	if x := recover(); x != nil {
+			//		gologger.Errorf("[QCC] ERROR: %v", x)
+			//		wg.Done()
+			//	}
+			//}()
 			res, ensOutMap := coolapk.GetReq(options)
 			if options.IsMergeOut {
 				outputfile.MergeOutPut(res, ensOutMap, "酷安", options)
@@ -237,12 +237,12 @@ func RunJob(options *common.ENOptions) {
 	if utils.IsInList("chinaz", options.GetType) {
 		wg.Add(1)
 		go func() {
-			defer func() {
-				if x := recover(); x != nil {
-					gologger.Errorf("[QCC] ERROR: %v", x)
-					wg.Done()
-				}
-			}()
+			//defer func() {
+			//	if x := recover(); x != nil {
+			//		gologger.Errorf("[QCC] ERROR: %v", x)
+			//		wg.Done()
+			//	}
+			//}()
 			res, ensOutMap := chinaz.GetEnInfoByPid(options)
 			if options.IsMergeOut {
 				outputfile.MergeOutPut(res, ensOutMap, "站长之家", options)
@@ -257,12 +257,12 @@ func RunJob(options *common.ENOptions) {
 	if utils.IsInList("qimai", options.GetType) {
 		wg.Add(1)
 		go func() {
-			defer func() {
-				if x := recover(); x != nil {
-					gologger.Errorf("[QCC] ERROR: %v", x)
-					wg.Done()
-				}
-			}()
+			//defer func() {
+			//	if x := recover(); x != nil {
+			//		gologger.Errorf("[QCC] ERROR: %v", x)
+			//		wg.Done()
+			//	}
+			//}()
 			res, ensOutMap := qimai.GetInfoByKeyword(options)
 			outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
 			wg.Done()

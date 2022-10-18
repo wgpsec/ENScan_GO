@@ -139,7 +139,7 @@ func Parse(options *ENOptions) {
 		options.GetField = append(options.GetField, "partner")
 	}
 	if options.IsHold {
-		options.GetField = append(options.GetField, "hold")
+		options.GetField = append(options.GetField, "holds")
 	}
 	if options.IsSupplier {
 		options.GetField = append(options.GetField, "supplier")
