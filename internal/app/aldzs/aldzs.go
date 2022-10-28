@@ -3,14 +3,15 @@ package aldzs
 import (
 	"crypto/tls"
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 func getReq(searchType string, data map[string]string) gjson.Result {
@@ -46,6 +47,9 @@ func SearchByName(options *common.ENOptions) {
 		"token":      token,
 		"visit_type": "1",
 	}).Array()
+	if len(appList) == 0 {
+		return
+	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"NO", "ID", "小程序名称", "所属公司", "描述"})
 	for k, v := range appList {
