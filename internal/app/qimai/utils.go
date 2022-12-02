@@ -62,9 +62,8 @@ func getENMap() map[string]*EnsGo {
 	return ensInfoMap
 }
 
-//计算签名
 func sign(params string, url string) string {
-	i := "0000000c735d856"
+	i := "xyz517cda96abcd"
 	f := -utils.RangeRand(100, 10000)
 	o := time.Now().Unix()*1000 - (f) - 1515125653845
 	r := base64.StdEncoding.EncodeToString([]byte(params))
@@ -106,6 +105,7 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	params["analysis"] = analysis
 	urls := "https://api.qimai.cn/" + url
 	resp, err := client.R().SetQueryParams(params).Get(urls)
+	gologger.Debugf("%s", resp)
 	if err != nil {
 		if options.Proxy != "" {
 			client.RemoveProxy()

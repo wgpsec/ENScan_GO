@@ -33,7 +33,7 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 }
 
 func GetInfoByCompanyId(companyId int64, options *common.ENOptions) (data map[string][]gjson.Result) {
-	gologger.Infof("GetInfoByCompanyId: %d", companyId)
+	gologger.Infof("GetInfoByCompanyId: %d\n", companyId)
 	data = map[string][]gjson.Result{}
 	ensMap := getENMap()
 	params := map[string]string{
@@ -99,8 +99,8 @@ func getInfoList(types string, params map[string]string, options *common.ENOptio
 			gologger.Errorf("没有数据")
 		}
 	} else {
-		gologger.Errorf("获取数据失败\n")
-		gologger.Debugf(data.Raw)
+		gologger.Errorf("获取数据失败,请检查是否登陆\n")
+		gologger.Debugf(data.Raw + "\n")
 	}
 	return listData
 }
