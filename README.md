@@ -181,6 +181,8 @@ ENScanGo可使用API模式进行分布式部署，搭建API服务构建资产处
 
 **api调用效果（前端开发中）**
 
+可使用 https://enscan.wgpsec.org/api/info 体验
+
 ![image-20221028231744940](README/image-20221028231744940.png)
 
 ![image-20221028231815437](README/image-20221028231815437.png)
