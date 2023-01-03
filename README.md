@@ -267,6 +267,30 @@ api:
   port: "8080" # 启动API端口
 ```
 
+mongodb数据库初始化配置
+
+```
+db.createCollection("app");
+db.createCollection("branch");
+db.createCollection("copyright");
+db.createCollection("enterprise_info");
+db.getCollection("enterprise_info").createIndex({
+    name: "hashed"
+}, {
+    name: "name"
+});
+db.createCollection("holds");
+db.createCollection("icp");
+db.createCollection("infos");
+db.createCollection("invest");
+db.createCollection("job");
+db.createCollection("partner");
+db.createCollection("supplier");
+db.createCollection("wechat");
+db.createCollection("weibo");
+db.createCollection("wx_app");
+```
+
 **API模式**
 
 启动API模式将在配置端口监听，并启动api服务，可通过api服务进行调用读取数据
@@ -284,6 +308,8 @@ api:
 ```
 ./enscan --client
 ```
+
+
 
 
 
