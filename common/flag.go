@@ -31,6 +31,7 @@ func Flag(Info *ENOptions) {
 	flag.StringVar(&Info.ScanType, "type", "aqc", "API类型 eg qcc")
 	flag.StringVar(&Info.Output, "o", "", "结果输出的文件夹位置(可选)")
 	flag.BoolVar(&Info.IsMergeOut, "is-merge", false, "合并导出")
+	flag.BoolVar(&Info.IsJsonOutput, "json-output", false, "json导出")
 	//查询参数指定
 	flag.Float64Var(&Info.InvestNum, "invest", 0, "投资比例 eg 100")
 	flag.StringVar(&Info.GetFlags, "field", "", "获取字段信息 eg icp")
