@@ -38,6 +38,7 @@ type ENOptions struct {
 	GetType        []string
 	IsDebug        bool
 	Deep           int
+	IsJsonOutput   bool
 	IsApiMode      bool
 	IsMergeOut     bool   //聚合
 	IsMerge        bool   //聚合

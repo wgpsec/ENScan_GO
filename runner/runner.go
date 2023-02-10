@@ -18,11 +18,12 @@ import (
 	"github.com/wgpsec/ENScan/internal/tianyancha"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/net/context"
+	"io/ioutil"
 	"sync"
 	"time"
 )
 
-//InfoDto web请求指定数据
+// InfoDto web请求指定数据
 type InfoDto struct {
 	SearchList  []string
 	OrgName     string
@@ -74,7 +75,7 @@ func RunEnumeration(options *common.ENOptions) {
 	}
 }
 
-//Consume 任务队列消费者，调用启动任务
+// Consume 任务队列消费者，调用启动任务
 func (consumer *TaskConsumer) Consume(delivery rmq.Delivery) {
 	var task *common.ENOptions
 	if err := json.Unmarshal([]byte(delivery.Payload()), &task); err != nil {
@@ -94,7 +95,7 @@ func (consumer *TaskConsumer) Consume(delivery rmq.Delivery) {
 	}
 }
 
-//Worker 注册任务消费者
+// Worker 注册任务消费者
 func Worker(options *common.ENOptions) {
 	if options.ClientMode != "" {
 		taskQueue, err := db.RmqC.OpenQueue(options.ClientMode)
@@ -108,7 +109,7 @@ func Worker(options *common.ENOptions) {
 	}
 }
 
-//SearchGo 查询入口判断
+// SearchGo 查询入口判断
 func SearchGo(types string, options *common.ENOptions) string {
 	switch types {
 	case "aqc":
@@ -124,7 +125,7 @@ func SearchGo(types string, options *common.ENOptions) string {
 	}
 }
 
-//SearchByKeyword 根据关键词查询，模糊搜索
+// SearchByKeyword 根据关键词查询，模糊搜索
 func SearchByKeyword(keyword string, types string, options *common.ENOptions) string {
 	if keyword != "" {
 		options.KeyWord = keyword
@@ -153,6 +154,8 @@ func RunJob(options *common.ENOptions) {
 
 	gologger.Infof("关键词:【%s|%s】数据源：%s 数据字段：%s\n", options.KeyWord, options.CompanyID, options.GetType, options.GetField)
 
+	allRes := make(map[string]*common.EnInfos, 0)
+
 	var wg sync.WaitGroup
 
 	//爱企查
@@ -168,13 +171,15 @@ func RunJob(options *common.ENOptions) {
 				//}()
 				//查询企业信息
 				res, ensOutMap := aiqicha.GetEnInfoByPid(options)
-
+				allRes["aqc"] = res
 				if options.IsMergeOut {
 					//合并导出
 					outputfile.MergeOutPut(res, ensOutMap, "爱企查", options)
 				} else {
-					//单独导出
-					outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+					if !options.IsJsonOutput {
+						//单独导出
+						outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+					}
 				}
 				//hook.BiuScan(res, options)
 				wg.Done()
@@ -198,10 +203,13 @@ func RunJob(options *common.ENOptions) {
 					}
 				}()
 				res, ensOutMap := tianyancha.GetEnInfoByPid(options)
+				allRes["tyc"] = res
 				if options.IsMergeOut {
 					outputfile.MergeOutPut(res, ensOutMap, "天眼查", options)
 				} else {
-					outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+					if !options.IsJsonOutput {
+						outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+					}
 				}
 				//hook.BiuScan(res, options)
 				wg.Done()
@@ -224,10 +232,13 @@ func RunJob(options *common.ENOptions) {
 			//	}
 			//}()
 			res, ensOutMap := coolapk.GetReq(options)
+			allRes["coolapk"] = res
 			if options.IsMergeOut {
 				outputfile.MergeOutPut(res, ensOutMap, "酷安", options)
 			} else {
-				outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+				if !options.IsJsonOutput {
+					outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+				}
 			}
 			wg.Done()
 		}()
@@ -244,10 +255,13 @@ func RunJob(options *common.ENOptions) {
 			//	}
 			//}()
 			res, ensOutMap := chinaz.GetEnInfoByPid(options)
+			allRes["chinaz"] = res
 			if options.IsMergeOut {
 				outputfile.MergeOutPut(res, ensOutMap, "站长之家", options)
 			} else {
-				outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+				if !options.IsJsonOutput {
+					outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+				}
 			}
 			wg.Done()
 		}()
@@ -264,7 +278,10 @@ func RunJob(options *common.ENOptions) {
 			//	}
 			//}()
 			res, ensOutMap := qimai.GetInfoByKeyword(options)
-			outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+			allRes["qimai"] = res
+			if !options.IsJsonOutput {
+				outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+			}
 			wg.Done()
 		}()
 	}
@@ -276,6 +293,24 @@ func RunJob(options *common.ENOptions) {
 	}
 
 	wg.Wait()
+
+	jsonStr, err := json.Marshal(allRes)
+	if err != nil {
+		gologger.Errorf("json Marshal %v", err)
+	}
+
+	if options.IsJsonOutput {
+		writeFile := fmt.Sprintf("%s.json", options.KeyWord)
+		if options.Output != "" {
+			writeFile = options.Output
+		}
+		err = ioutil.WriteFile(writeFile,
+			jsonStr, 0644)
+		if err != nil {
+			gologger.Errorf("文件写入失败 %v", err)
+		}
+	}
+
 	// 如果不是API模式，而且不是批量文件形式查询 不是API 就合并导出到表格里面
 	if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode {
 		outputfile.OutPutExcelByMergeEnInfo(options)
@@ -336,7 +371,7 @@ func AddTask(options *common.ENOptions) error {
 	return nil
 }
 
-//GetInfo 获取信息
+// GetInfo 获取信息
 func GetInfo(infoDto InfoDto, reEnsList map[string][]map[string]interface{}, depths int, options *common.ENOptions) map[string][]map[string]interface{} {
 	InvestCount := 0                     //如果是-1那就没有投资信息
 	ENCount := make(map[string][]string) //判断是否有查询过 防止重复查询
