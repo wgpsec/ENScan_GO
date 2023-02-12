@@ -1,6 +1,7 @@
 package outputfile
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
@@ -14,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/net/context"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -113,7 +115,7 @@ func GetEmails(f *excelize.File, options *common.ENOptions) {
 	}
 }
 
-//MergeOutPut 数据合并到MAP
+// MergeOutPut 数据合并到MAP
 func MergeOutPut(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, info string, options *common.ENOptions) map[string][][]interface{} {
 	gologger.Infof("%s【%s】信息合并\n", info, ensInfos.Name)
 
@@ -159,7 +161,7 @@ func MergeOutPut(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, info strin
 	return EnsInfosList
 }
 
-//OutPutJsonByMergeEnInfo 根据合并数据写入数据库
+// OutPutJsonByMergeEnInfo 根据合并数据写入数据库
 func OutPutJsonByMergeEnInfo(ENOptions *common.ENOptions) error {
 	gologger.Infof("【%s】 数据写入中\n", ENOptions.CompanyName)
 	for k, s := range EnsInfosList {
@@ -396,8 +398,8 @@ func OutPutJsonByMergeEnInfo(ENOptions *common.ENOptions) error {
 	return nil
 }
 
-//OutPutExcelByMergeJson 合并导出从数据库提取的信息 流输出
-//out 为输入的数据
+// OutPutExcelByMergeJson 合并导出从数据库提取的信息 流输出
+// out 为输入的数据
 func OutPutExcelByMergeJson(out map[string][]map[string]interface{}, w io.Writer) error {
 
 	f := excelize.NewFile()
@@ -448,26 +450,8 @@ func OutPutExcelByMergeJson(out map[string][]map[string]interface{}, w io.Writer
 
 }
 
-//OutPutExcelByMergeEnInfo 根据合并信息导出表格
+// OutPutExcelByMergeEnInfo 根据合并信息导出表格
 func OutPutExcelByMergeEnInfo(options *common.ENOptions) {
-
-	f := excelize.NewFile()
-	gologger.Infof("【%s】导出中\n", options.CompanyName)
-
-	for k, s := range EnsInfosList {
-		if _, ok := ENSMapList[k]; ok {
-			gologger.Infof("正在导出%s\n", ENSMapList[k].Name)
-			headers := ENSMapList[k].KeyWord
-			headers = append(headers, "查询信息")
-			data := s
-			f, _ = utils.ExportExcel(ENSMapList[k].Name, headers, data, f)
-		} else {
-			gologger.Errorf("导出错误信息 %s\n", k)
-		}
-	}
-	GetEmails(f, options)
-
-	f.DeleteSheet("Sheet1")
 
 	tmp := options.Output
 	_, err := os.Stat(tmp)
@@ -485,10 +469,58 @@ func OutPutExcelByMergeEnInfo(options *common.ENOptions) {
 	} else {
 		fileName = options.CompanyName
 	}
-	savaPath := tmp + "/【合并】" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
-	if err := f.SaveAs(savaPath); err != nil {
-		gologger.Fatalf("导出失败：%s", err)
+	savaPath := tmp + "/【合并】" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10)
+
+	if options.IsJsonOutput {
+		savaPath += ".json"
+		jsonData := map[string][]map[string]interface{}{}
+		for k, s := range EnsInfosList {
+			//if _, ok := ENSMapList[k]; ok {
+			for _, s1 := range s {
+				tmps := map[string]interface{}{}
+				for k1, v1 := range ENSMapLN[k].JField {
+					tmps[v1] = s1[k1]
+				}
+				jsonData[k] = append(jsonData[k], tmps)
+			}
+
+			//}
+		}
+
+		jsonStr, err := json.Marshal(jsonData)
+		if err != nil {
+			gologger.Fatalf("JSON导出失败：%s", err)
+		}
+		err = ioutil.WriteFile(savaPath,
+			jsonStr, 0644)
+		if err != nil {
+			gologger.Errorf("文件写入失败 %v", err)
+		}
+	} else {
+		savaPath += ".xlsx"
+		f := excelize.NewFile()
+		gologger.Infof("【%s】导出中\n", options.CompanyName)
+
+		for k, s := range EnsInfosList {
+			if _, ok := ENSMapList[k]; ok {
+				gologger.Infof("正在导出%s\n", ENSMapList[k].Name)
+				headers := ENSMapList[k].KeyWord
+				headers = append(headers, "查询信息")
+				data := s
+				f, _ = utils.ExportExcel(ENSMapList[k].Name, headers, data, f)
+			} else {
+				gologger.Errorf("导出错误信息 %s\n", k)
+			}
+		}
+		GetEmails(f, options)
+
+		f.DeleteSheet("Sheet1")
+
+		if err := f.SaveAs(savaPath); err != nil {
+			gologger.Fatalf("导出失败：%s", err)
+		}
 	}
+
 	gologger.Infof("导出成功路径： %s\n", savaPath)
 	EnJsonList = make(map[string][]map[string]interface{})
 	EnsInfosList = make(map[string][][]interface{})
@@ -496,46 +528,13 @@ func OutPutExcelByMergeEnInfo(options *common.ENOptions) {
 
 }
 
-//OutPutExcelByEnInfo 直接导出单独表格信息
+// OutPutExcelByEnInfo 直接导出单独表格信息
 func OutPutExcelByEnInfo(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, options *common.ENOptions) {
 	if ensInfos.Name == "" {
 		ensInfos.Name = options.KeyWord
 	}
 	if ensInfos.Name != "" && !options.IsApiMode {
-		f := excelize.NewFile()
-		gologger.Infof("【%s】导出中\n", ensInfos.Name)
-		//if ensInfos.SType == "TYC" {
-		//	for k, s := range ensInfos.Infoss {
-		//		gologger.Infof("正在导出%s\n", ensMap[k].Name)
-		//		headers := ensMap[k].KeyWord
-		//		var data [][]interface{}
-		//		for _, y := range s {
-		//			var str []interface{}
-		//			for _, t := range ensMap[k].Field {
-		//				str = append(str, y[t])
-		//			}
-		//			data = append(data, str)
-		//		}
-		//		f, _ = utils.ExportExcel(ensMap[k].Name, headers, data, f)
-		//	}
-		//} else {
-		for k, s := range ensInfos.Infos {
-			gologger.Infof("正在导出%s\n", ensMap[k].Name)
-			headers := ensMap[k].KeyWord
-			var data [][]interface{}
-			for _, y := range s {
-				var str []interface{}
-				results := gjson.GetMany(y.Raw, ensMap[k].Field...)
-				for _, t := range results {
-					str = append(str, t.String())
-				}
-				data = append(data, str)
-			}
-			f, _ = utils.ExportExcel(ensMap[k].Name, headers, data, f)
-		}
-		//}
-		f.DeleteSheet("Sheet1")
-
+		//初始化导出目录
 		tmp := options.Output
 		_, err := os.Stat(tmp)
 		if err != nil {
@@ -545,16 +544,54 @@ func OutPutExcelByEnInfo(ensInfos *common.EnInfos, ensMap map[string]*ENSMap, op
 				gologger.Fatalf("缺少%s文件夹，并且创建失败！", tmp)
 			}
 		}
-		// Save spreadsheet by the given path.
+		// 修复导出文件名过长的问题
 		fileName := ""
 		if len([]rune(ensInfos.Name)) > 20 {
 			fileName = options.KeyWord
 		} else {
 			fileName = ensInfos.Name
 		}
-		savaPath := tmp + "/" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
-		if err := f.SaveAs(savaPath); err != nil {
-			gologger.Fatalf("导出失败：%s", err)
+		savaPath := tmp + "/" + fileName + "--" + time.Now().Format("2006-01-02") + "--" + strconv.FormatInt(time.Now().Unix(), 10)
+		if options.IsJsonOutput {
+			savaPath += ".json"
+			jsonData := map[string][]map[string]interface{}{}
+			for k1, y := range ensInfos.Infos {
+				for _, s := range y {
+					jsonData[k1] = append(jsonData[k1], s.Value().(map[string]interface{}))
+				}
+			}
+			jsonStr, err := json.Marshal(jsonData)
+			if err != nil {
+				gologger.Fatalf("JSON导出失败：%s", err)
+			}
+			err = ioutil.WriteFile(savaPath,
+				jsonStr, 0644)
+			if err != nil {
+				gologger.Errorf("文件写入失败 %v", err)
+			}
+		} else {
+			savaPath += ".xlsx"
+			// 导出表格信息
+			f := excelize.NewFile()
+			gologger.Infof("【%s】导出中\n", ensInfos.Name)
+			for k, s := range ensInfos.Infos {
+				gologger.Infof("正在导出%s\n", ensMap[k].Name)
+				headers := ensMap[k].KeyWord
+				var data [][]interface{}
+				for _, y := range s {
+					var str []interface{}
+					results := gjson.GetMany(y.Raw, ensMap[k].Field...)
+					for _, t := range results {
+						str = append(str, t.String())
+					}
+					data = append(data, str)
+				}
+				f, _ = utils.ExportExcel(ensMap[k].Name, headers, data, f)
+			}
+			f.DeleteSheet("Sheet1")
+			if err := f.SaveAs(savaPath); err != nil {
+				gologger.Fatalf("表格导出失败：%s", err)
+			}
 		}
 		gologger.Infof("导出成功路径： %s\n", savaPath)
 	} else {
