@@ -63,11 +63,19 @@ func getCompanyInfoById(pid string, deep int, isEnDetail bool, inFrom string, se
 	tds := false
 	//基本信息
 
+	//var res map[string]string
+	//res, enCount = SearchBaseInfo(pid, ensInfoMap, options)
+	//urls := "https://www.tianyancha.com/company/" + pid
+	//body := GetReqReturnPage(urls, options)
 	//提取页面的JS数据
 	detailRes, enCount = SearchBaseInfo(pid, tds, options)
 	enJsonTMP, _ := sjson.Set(detailRes.Raw, "inFrom", inFrom)
+	//修复成立日期信息
+	ts := time.UnixMilli(detailRes.Get("fromTime").Int())
+	enJsonTMP, _ = sjson.Set(enJsonTMP, "fromTime", ts.Format("2006-01-02"))
 	ensInfo.Infos["enterprise_info"] = append(ensInfo.Infos["enterprise_info"], gjson.Parse(enJsonTMP))
 	//数量统计 API base_count
+	//enCount = enBaseInfo.Get("props.pageProps.dehydratedState.queries").Array()[16].Get("state.data")
 	if options.IsShow && isEnDetail {
 		ensInfo.Name = detailRes.Get("name").String()
 		rs := gjson.GetMany(detailRes.Raw, ensMap["enterprise_info"].field...)
@@ -208,6 +216,8 @@ func SearchBaseInfo(pid string, tds bool, options *common.ENOptions) (result gjs
 	body := GetReqReturnPage(urls, options)
 
 	if tds {
+		//htmlInfo := htmlquery.FindOne(body, "//*[@class=\"position-rel company-header-container\"]//script")
+		//enBaseInfo = pageParseJson(htmlquery.InnerText(htmlInfo))
 		result = gjson.Get(GetReq("https://capi.tianyancha.com/cloud-other-information/companyinfo/baseinfo/web?id="+pid, "", options), "data")
 		fmt.Println(result.String())
 	} else {
@@ -314,6 +324,20 @@ func SearchName(options *common.ENOptions) ([]gjson.Result, string) {
 	return enList, enList[0].Get("id").String()
 }
 
+//func getKeyWord(page *html.Node, ensInfoMap *EnsGo) {
+//	a, err := htmlquery.QueryAll(page, "//th")
+//	if err != nil {
+//		panic(`not a valid XPath expression.`)
+//	}
+//	for _, value := range a {
+//		state := htmlquery.InnerText(value)
+//		if state == "序号" {
+//			continue
+//		}
+//		ensInfoMap.keyWord = append(ensInfoMap.keyWord, state)
+//	}
+//}
+
 func JudgePageNumWithCookie(page *html.Node) int {
 	list := htmlquery.Find(page, "//li")
 	return len(list) - 1
@@ -366,6 +390,21 @@ func getInfoList(pid string, types string, s *EnsGo, options *common.ENOptions) 
 			listData = append(listData, gjson.Get(content, pats).Array()...)
 		}
 	}
+
+	//urls := "https://www.tianyancha.com/" + ensInfoMap.api + "?ps=30&id=" + pid
+	//page := GetReqReturnPage(urls, options)
+	//
+	//List := getTb(page, ensInfoMap, 1)
+	//page_num := JudgePageNumWithCookie(page)
+	//if page_num > 1 {
+	//	for i := 2; i <= page_num; i++ {
+	//		urls = "https://www.tianyancha.com/" + ensInfoMap.api + "?ps=30&id=" + pid + "&pn=" + strconv.Itoa(i)
+	//		page = GetReqReturnPage(urls, options)
+	//		tmp_List := getTb(page, ensInfoMap, i)
+	//		List = append(List, tmp_List...)
+	//	}
+	//}
+	//
 
 	return listData
 

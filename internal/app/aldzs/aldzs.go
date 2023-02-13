@@ -3,15 +3,15 @@ package aldzs
 import (
 	"crypto/tls"
 	"fmt"
-	"net/http"
-	"os"
-	"strconv"
-
 	"github.com/go-resty/resty/v2"
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/outputfile"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 func getReq(searchType string, data map[string]string) gjson.Result {
@@ -36,7 +36,11 @@ func getReq(searchType string, data map[string]string) gjson.Result {
 	return res.Get("data")
 }
 
-func SearchByName(options *common.ENOptions) {
+func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
+	ensInfos = &common.EnInfos{}
+	ensInfos.Infos = make(map[string][]gjson.Result)
+	ensOutMap = make(map[string]*outputfile.ENSMap)
+
 	keyword := options.KeyWord
 	//拿到Token信息
 	token := options.CookieInfo
@@ -71,6 +75,7 @@ func SearchByName(options *common.ENOptions) {
 		"size":   "100",
 		"token":  token,
 	}).Array()
+	ensInfos.Infos["wx_app"] = sAppList
 	table = tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"NO", "ID", "小程序名称", "描述"})
 	for k, v := range sAppList {
@@ -82,4 +87,35 @@ func SearchByName(options *common.ENOptions) {
 		})
 	}
 	table.Render()
+
+	for k, v := range getENMap() {
+		ensOutMap[k] = &outputfile.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
+	}
+	return ensInfos, ensOutMap
+}
+
+type EnsGo struct {
+	name     string
+	api      string
+	fids     string
+	params   map[string]string
+	field    []string
+	keyWord  []string
+	typeInfo []string
+}
+
+func getENMap() map[string]*EnsGo {
+	ensInfoMap := make(map[string]*EnsGo)
+	ensInfoMap = map[string]*EnsGo{
+		"wx_app": {
+			name:    "微信小程序",
+			field:   []string{"name", "categoryTitle", "logo", "", ""},
+			keyWord: []string{"名称", "分类", "头像", "二维码", "阅读量"},
+		},
+	}
+	for k, _ := range ensInfoMap {
+		ensInfoMap[k].keyWord = append(ensInfoMap[k].keyWord, "数据关联  ")
+		ensInfoMap[k].field = append(ensInfoMap[k].field, "inFrom")
+	}
+	return ensInfoMap
 }

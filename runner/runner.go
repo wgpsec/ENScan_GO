@@ -271,8 +271,15 @@ func RunJob(options *common.ENOptions) {
 
 	// 微信小程序查询
 	if utils.IsInList("aldzs", options.GetType) {
+		wg.Add(1)
 		options.CookieInfo = options.ENConfig.Cookies.Aldzs
-		aldzs.SearchByName(options)
+		res, ensOutMap := aldzs.GetInfoByKeyword(options)
+		if options.IsMergeOut {
+			outputfile.MergeOutPut(res, ensOutMap, "阿拉丁指数", options)
+		} else {
+			outputfile.OutPutExcelByEnInfo(res, ensOutMap, options)
+		}
+		wg.Done()
 	}
 
 	wg.Wait()

@@ -76,6 +76,10 @@ func Parse(options *ENOptions) {
 		options.Deep = 1
 	}
 
+	if options.Output == "!" {
+		gologger.Infof("当前模式不会导出文件信息！\n")
+	}
+
 	//数据源判断 默认为爱企查
 	if options.ScanType == "" && len(options.GetType) == 0 {
 		options.ScanType = "aqc"
