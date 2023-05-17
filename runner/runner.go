@@ -203,10 +203,6 @@ func RunJob(options *common.ENOptions) {
 			}()
 		}
 	}
-	// 小蓝本
-	if utils.IsInList("xlb", options.GetType) {
-		gologger.Errorf("暂不支持")
-	}
 
 	// coolapk酷安应用市场查询
 	if utils.IsInList("coolapk", options.GetType) {

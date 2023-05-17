@@ -86,7 +86,7 @@ func Parse(options *ENOptions) {
 	}
 	//如果是指定全部数据
 	if options.ScanType == "all" {
-		options.GetType = []string{"aqc", "xlb", "qcc", "tyc"}
+		options.GetType = []string{"aqc", "tyc"}
 		options.IsMergeOut = true
 	} else if options.ScanType != "" {
 		options.GetType = strings.Split(options.ScanType, ",")
