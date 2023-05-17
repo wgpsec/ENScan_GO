@@ -22,7 +22,7 @@
 <a href="https://github.com/wgpsec/ENScan_GO/discussions"><strong>探索更多Tricks »</strong></a>
       <br/>
     <br />
-    <a href="https://github.com/wgpsec/ENScan_GO/releases">下载可执行文件</a>
+    <a href="https://github.com/wgpsec/ENScan_GO/releases">下载程序</a>
     ·
     <a href="https://github.com/wgpsec/ENScan_GO/issues">反馈Bug</a>
     ·
@@ -62,6 +62,7 @@
 
 
 ## 使用指南
+请直接前往RELEASE下载编译好的文件使用
 
 ENScanGo在第一次使用时需要使用 -v 命令 生成配置文件信息
 
