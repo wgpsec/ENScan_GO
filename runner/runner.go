@@ -188,7 +188,7 @@ func RunJob(options *common.ENOptions) {
 			go func() {
 				defer func() {
 					if x := recover(); x != nil {
-						gologger.Errorf("[QCC] ERROR: %v", x)
+						gologger.Errorf("[TYC] ERROR: %v", x)
 						wg.Done()
 					}
 				}()
