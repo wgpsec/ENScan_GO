@@ -181,10 +181,6 @@ func RunJob(options *common.ENOptions) {
 		}
 	}
 
-	//企查查
-	if utils.IsInList("qcc", options.GetType) {
-		gologger.Errorf("【QCC】签名未更新，暂时无法使用\n")
-	}
 	//天眼查
 	if utils.IsInList("tyc", options.GetType) {
 		if options.CompanyID == "" || (options.CompanyID != "" && utils.CheckPid(options.CompanyID) == "tyc") {
