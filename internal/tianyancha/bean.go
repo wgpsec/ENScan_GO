@@ -245,9 +245,11 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		client.Header.Set("Content-Type", "application/json")
 		client.Header.Del("Cookie")
 		client.Header.Set("X-Tycid", "11111111111111ec111111ac10")
-		client.Header.Set("X-Auth-Token", "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMzAwMzY5Njkz11111Q3OTg5NiwiZXhwIjoxNjU3MDcxODk2fQ.1")
+		//client.Header.Set("X-Auth-Token", "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMzAwd2VmMzY5ZmRzZmZld3dmNjkz77-9XXXvv70N77-9Tg5N77-9CO-_vV4cCO-_ve-_vU3vv71N77-9De-_vU4OTe-_vQ.SMKfb2d9vVX9yYfeLcrBTt3UDcO_pPucK72hfzeQ-ThCt07X2cDXazyBklEY06uLiVyqpTIhqVlxWu5cqpZNMw")
 	}
 
+	//加入随机延迟
+	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
 	clientR := client.R()
 	if data == "" {
 		clientR.Method = "GET"
@@ -331,7 +333,7 @@ func UpCookie(res string, options *common.ENOptions) {
 	}
 }
 
-//SingAwcSCV2 acw_sc__v2
+// SingAwcSCV2 acw_sc__v2
 func SingAwcSCV2(tt string) string {
 	vm := otto.New()
 	_, err := vm.Run(`

@@ -49,7 +49,7 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsInvestRd, "uncertain-invest", false, "包括未公示投资公司（无法确定占股比例）")
 	flag.BoolVar(&Info.IsGroup, "is-group", false, "查询关键词为集团")
 	flag.BoolVar(&Info.ISKeyPid, "is-pid", false, "批量查询文件是否为公司PID")
-	flag.IntVar(&Info.DelayTime, "delay", 1, "每个请求延迟（S）-1为随机延迟1-5S")
+	flag.IntVar(&Info.DelayTime, "delay", 0, "每个请求延迟（S）-1为随机延迟1-5S")
 	flag.StringVar(&Info.Proxy, "proxy", "", "设置代理")
 	flag.IntVar(&Info.TimeOut, "timeout", 1, "每个请求默认1（分钟）超时")
 	flag.BoolVar(&Info.IsMerge, "no-merge", false, "批量查询【取消】合并导出")

@@ -47,10 +47,13 @@ type ENOptions struct {
 }
 
 func (h *ENOptions) GetDelayRTime() int64 {
+	if h.DelayTime != 0 {
+		h.DelayMaxTime = int64(h.DelayTime)
+	}
 	if h.DelayMaxTime == 0 {
 		return 0
 	}
-	return utils.RangeRand(0, h.DelayMaxTime)
+	return utils.RangeRand(1, h.DelayMaxTime)
 }
 
 func (h *ENOptions) GetENConfig() *ENConfig {
