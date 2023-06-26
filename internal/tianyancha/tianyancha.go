@@ -213,7 +213,6 @@ func pageParseJson(content string) (res gjson.Result) {
 
 func SearchBaseInfo(pid string, tds bool, options *common.ENOptions) (result gjson.Result, enBaseInfo gjson.Result) {
 	urls := "https://www.tianyancha.com/company/" + pid
-	body := GetReqReturnPage(urls, options)
 
 	if tds {
 		//htmlInfo := htmlquery.FindOne(body, "//*[@class=\"position-rel company-header-container\"]//script")
@@ -221,6 +220,7 @@ func SearchBaseInfo(pid string, tds bool, options *common.ENOptions) (result gjs
 		result = gjson.Get(GetReq("https://capi.tianyancha.com/cloud-other-information/companyinfo/baseinfo/web?id="+pid, "", options), "data")
 		fmt.Println(result.String())
 	} else {
+		body := GetReqReturnPage(urls, options)
 		htmlInfos := htmlquery.FindOne(body, "//*[@id=\"__NEXT_DATA__\"]")
 		enInfo := gjson.Parse(htmlquery.InnerText(htmlInfos))
 		enInfoD := enInfo.Get("props.pageProps.dehydratedState.queries").Array()

@@ -303,6 +303,9 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 
 func GetReqReturnPage(url string, options *common.ENOptions) *html.Node {
 	body := GetReq(url, "", options)
+	if strings.Contains(body, "请输入中国大陆手机号") {
+		gologger.Errorf("[TYC] COOKIE检查失效，请检查COOKIE是否正确！\n")
+	}
 	page, _ := htmlquery.Parse(strings.NewReader(body))
 	return page
 }
