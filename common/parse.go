@@ -18,11 +18,18 @@ func Parse(options *ENOptions) {
 		gologger.Infof("Current Version: %s\n", GitTag)
 		if ok, _ := utils.PathExists(cfgYName); !ok {
 			f, errs := os.Create(cfgYName) //创建文件
-			_, errs = io.WriteString(f, configYaml)
 			if errs != nil {
 				gologger.Fatalf("配置文件创建失败 %s\n", errs)
+			} else {
+				_, errs = io.WriteString(f, configYaml)
+				if errs != nil {
+					gologger.Fatalf("配置文件写入失败 %s\n", errs)
+				} else {
+					gologger.Infof("配置文件生成成功\n")
+				}
 			}
-			gologger.Infof("配置文件生成成功\n")
+		} else {
+			gologger.Infof("配置文件已经存在\n")
 		}
 		os.Exit(0)
 	}
