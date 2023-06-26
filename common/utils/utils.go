@@ -141,8 +141,9 @@ func CheckPid(pid string) (res string) {
 		if pid[0] == 'p' {
 			gologger.Errorf("无法查询法人信息\n")
 			res = ""
+		} else {
+			res = "xlb"
 		}
-		res = "xlb"
 	} else {
 		gologger.Errorf("pid长度%d不正确，pid: %s", len(pid), pid)
 		return ""
