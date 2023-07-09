@@ -244,10 +244,11 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	if strings.Contains(url, "capi.tianyancha.com") {
 		client.Header.Set("Content-Type", "application/json")
 		client.Header.Del("Cookie")
-		client.Header.Set("X-Tycid", "11111111111111ec111111ac10")
-		//client.Header.Set("X-Auth-Token", "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxMzAwd2VmMzY5ZmRzZmZld3dmNjkz77-9XXXvv70N77-9Tg5N77-9CO-_vV4cCO-_ve-_vU3vv71N77-9De-_vU4OTe-_vQ.SMKfb2d9vVX9yYfeLcrBTt3UDcO_pPucK72hfzeQ-ThCt07X2cDXazyBklEY06uLiVyqpTIhqVlxWu5cqpZNMw")
+		//client.Header.Set("X-Tycid", "11111111111111ec111111ac10")
 	}
 
+	//强制延时1s
+	time.Sleep(1 * time.Second)
 	//加入随机延迟
 	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
 	clientR := client.R()
@@ -297,6 +298,8 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		gologger.Errorf("【TYC】请求错误 404 %s \n", url)
 	} else {
 		gologger.Errorf("【TYC】未知错误 %s\n", resp.StatusCode())
+		gologger.Debugf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
+		gologger.Debugf("【TYC】\n%s\n", resp.Body())
 	}
 	return ""
 }
