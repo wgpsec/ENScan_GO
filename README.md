@@ -35,6 +35,8 @@
 
 **使用程序可能导致账号被封，仅用于信息收集用途，请勿用于非法用途**
 
+**若该程序影响或侵犯到您的权益，请与我们联系**
+
 ![ENScanGo](README/ENScanGo.png)
 
  - 使用支持以下API，并支持合并数据导出
@@ -65,6 +67,10 @@
 
 ENScanGo在第一次使用时需要使用 -v 命令 生成配置文件信息
 
+**遇到问题请加上参数 --debug 提issue**
+
+### 登陆配置
+
 Cookie信息请勿直接 `document.cookie`，可能因为http-only 选项无法复制全导致登陆失败
 
 ![image-20221028223835307](README/image-20221028223835307.png)
@@ -74,6 +80,12 @@ Cookie信息请勿直接 `document.cookie`，可能因为http-only 选项无法�
 点击任意请求，拿到请求里的TOKEN
 
 ![image-20230709132223242](./README/image-20230709132223242.png)
+
+**TYC tycid**
+
+配置COOKIE后配置tycid
+
+![image-20230722194839975](./README/image-20230722194839975.png)
 
 ### 快速使用
 
