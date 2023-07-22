@@ -185,6 +185,9 @@ func RunJob(options *common.ENOptions) {
 	if utils.IsInList("tyc", options.GetType) {
 		if options.CompanyID == "" || (options.CompanyID != "" && utils.CheckPid(options.CompanyID) == "tyc") {
 			wg.Add(1)
+			if options.ENConfig.Cookies.Tianyancha == "" || options.ENConfig.Cookies.Tycid == "" {
+				gologger.Fatalf("【TYC】MUST LOGIN 请在配置文件补充天眼查COOKIE和tycId\n")
+			}
 			go func() {
 				defer func() {
 					if x := recover(); x != nil {

@@ -233,7 +233,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		client.SetProxy(options.Proxy)
 	}
 	client.Header = http.Header{
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
+		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"},
 		"Accept":     {"text/html,application/json,application/xhtml+xml, image/jxr, */*"},
 		"Version":    {"TYC-Web"},
 		"Cookie":     {options.ENConfig.Cookies.Tianyancha},
@@ -244,7 +244,8 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	if strings.Contains(url, "capi.tianyancha.com") {
 		client.Header.Set("Content-Type", "application/json")
 		client.Header.Del("Cookie")
-		//client.Header.Set("X-Tycid", "11111111111111ec111111ac10")
+		client.Header.Set("X-Tycid", options.ENConfig.Cookies.Tycid)
+		//client.Header.Set("X-Auth-Token", "") //暂时好像没发现问题，等有问题再加上吧~
 	}
 
 	//强制延时1s

@@ -16,6 +16,7 @@ func Parse(options *ENOptions) {
 	//判断版本信息
 	if options.Version {
 		gologger.Infof("Current Version: %s\n", GitTag)
+		gologger.Infof("当前所需配置文件版本 V%.1f\n", cfgYV)
 		if ok, _ := utils.PathExists(cfgYName); !ok {
 			f, errs := os.Create(cfgYName) //创建文件
 			_, errs = io.WriteString(f, configYaml)
@@ -40,8 +41,8 @@ func Parse(options *ENOptions) {
 	if err := yaml.Unmarshal(yamlFile, conf); err != nil {
 		gologger.Fatalf("【配置文件加载失败】: %v", err)
 	}
-	if conf.Version < cfgYV {
-		gologger.Fatalf("配置文件版本不匹配，请备份配置文件后 运行 -v 重新生成")
+	if conf.Version != cfgYV {
+		gologger.Fatalf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
 	//初始化输出文件夹位置
 	if options.Output == "" && conf.Common.Output != "" {
@@ -53,6 +54,7 @@ func Parse(options *ENOptions) {
 	//DEBUG模式设定
 	if options.IsDebug {
 		gologger.MaxLevel = gologger.Debug
+		gologger.Debugf("DEBUG 模式已开启\n")
 	}
 
 	if options.ClientMode != "" {

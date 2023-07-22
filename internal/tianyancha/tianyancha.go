@@ -308,7 +308,8 @@ func SearchName(options *common.ENOptions) ([]gjson.Result, string) {
 	enList := gjson.Get(content, "data.companyList").Array()
 
 	if len(enList) == 0 {
-		gologger.Errorf("没有查询到关键词 “%s” ", name)
+		gologger.Errorf("没有查询到关键词 “%s” \n", name)
+		gologger.Debugf("%s\n", content)
 		return enList, ""
 	} else {
 		gologger.Infof("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", name, len(enList))

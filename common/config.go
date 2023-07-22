@@ -85,6 +85,7 @@ type ENConfig struct {
 		Xlb        string `yaml:"xlb"`
 		Aiqicha    string `yaml:"aiqicha"`
 		Tianyancha string `yaml:"tianyancha"`
+		Tycid      string `yaml:"tycid"`
 		Qcc        string `yaml:"qcc"`
 		QiMai      string `yaml:"qimai"`
 		ChinaZ     string `yaml:"chinaz"`
@@ -169,17 +170,16 @@ var (
 	GitTag    string
 )
 var cfgYName = utils.GetConfigPath() + "/config.yaml"
-var cfgYV = 0.3
-var configYaml = `version: 0.3
+var cfgYV = 0.4
+var configYaml = `version: 0.4
 common:
   output: ""            # 导出文件位置
   field: [ ]			# 查询字段 如["website"]
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
-  qcc: ''               # 企查查   Cookie
-  aldzs: ''             # 阿拉丁   Cookie
-  xlb: ''               # 小蓝本   Token
+  tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
+  aldzs: ''             # 阿拉丁   TOKEN(see README)
   qimai: ''             # 七麦数据  Cookie
   chinaz: ''			# 站长之家  Cookie
   veryvp: '' 			# veryvp  Cookie
