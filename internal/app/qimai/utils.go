@@ -63,7 +63,7 @@ func getENMap() map[string]*EnsGo {
 }
 
 func sign(params string, url string) string {
-	i := "xyz517cda96abcd"
+	i := "xyz517cda96efgh"
 	f := -utils.RangeRand(100, 10000)
 	o := time.Now().Unix()*1000 - (f) - 1515125653845
 	r := base64.StdEncoding.EncodeToString([]byte(params))
@@ -87,7 +87,7 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	gologger.Debugf("[qimai] url: %s, params: %s\n", url, params)
 	cookie := options.ENConfig.Cookies.QiMai
 	cookie = strings.ReplaceAll(cookie, "syncd", "syncds")
-	cookie = cookie + ";synct=1651890521.296; syncd=-552934"
+	cookie = cookie + ";synct=1690024926.196; syncd=-1652"
 	client.Header = http.Header{
 		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
 		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},

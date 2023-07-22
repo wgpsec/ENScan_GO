@@ -18,9 +18,8 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 	params := map[string]string{
 		"page":   "1",
 		"search": options.KeyWord,
-		"market": "6",
+		"market": "1", //默认用360
 	}
-	fmt.Println("233333")
 	res := gjson.Parse(GetReq("search/android", params, options)).Get("appList").Array()
 	if res[0].Get("company.id").Int() != 0 {
 		fmt.Println(res[0].Get("company.name"))
