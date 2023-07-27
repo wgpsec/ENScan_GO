@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"math"
 	"math/big"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 // Md5 MD5加密
@@ -41,7 +42,7 @@ func SetStr(target []string) []string {
 	return result
 }
 
-//CheckList 检查列表发现空返回false
+// CheckList 检查列表发现空返回false
 func CheckList(target []string) bool {
 	if len(target) == 0 {
 		return false
@@ -99,7 +100,7 @@ func ReadFile(filename string) []string {
 	if FileExists(filename) {
 		f, err := os.Open(filename)
 		if err != nil {
-			gologger.Fatalf("read fail", err)
+			gologger.Fatalf("Read fail: %v\n", err)
 		}
 		fileScanner := bufio.NewScanner(f)
 		// read line by line

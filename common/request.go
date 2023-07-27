@@ -1,10 +1,11 @@
 package common
 
 import (
-	"github.com/go-resty/resty/v2"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"net/http"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 func GetReq(url string, options *ENOptions) string {
@@ -41,7 +42,7 @@ func GetReq(url string, options *ENOptions) string {
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("【AQC】请求错误 404 %s \n", url)
 	} else {
-		gologger.Errorf("【AQC】未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("【AQC】未知错误 %d\n", resp.StatusCode())
 	}
 	return ""
 }

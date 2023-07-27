@@ -2,15 +2,16 @@ package hook
 
 import (
 	"crypto/tls"
-	"github.com/go-resty/resty/v2"
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 func vGetReq(url string, data map[string]string, options *common.ENOptions) string {
@@ -65,7 +66,7 @@ func vGetReq(url string, data map[string]string, options *common.ENOptions) stri
 		time.Sleep(5 * time.Second)
 		return vGetReq(url, data, options)
 	} else {
-		gologger.Errorf("【vp】未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("【vp】未知错误 %d\n", resp.StatusCode())
 		return ""
 	}
 

@@ -2,13 +2,6 @@ package chinaz
 
 import (
 	"crypto/tls"
-	"github.com/go-resty/resty/v2"
-	"github.com/olekukonko/tablewriter"
-	"github.com/robertkrimen/otto"
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/outputfile"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +9,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/olekukonko/tablewriter"
+	"github.com/robertkrimen/otto"
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/outputfile"
+	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 func GetEnInfoByPid(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
@@ -129,7 +130,7 @@ func getReq(url string, data map[string]string, options *common.ENOptions) strin
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("【ChinaZ】请求错误 404 %s\n", url)
 	} else {
-		gologger.Errorf("【ChinaZ】未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("【ChinaZ】未知错误 %d\n", resp.StatusCode())
 		return ""
 	}
 

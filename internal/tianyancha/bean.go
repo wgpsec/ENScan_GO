@@ -3,6 +3,11 @@ package tianyancha
 import (
 	"crypto/tls"
 	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/antchfx/htmlquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/robertkrimen/otto"
@@ -10,10 +15,6 @@ import (
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"golang.org/x/net/html"
-	"net/http"
-	"regexp"
-	"strings"
-	"time"
 )
 
 type EnBen struct {
@@ -298,7 +299,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("【TYC】请求错误 404 %s \n", url)
 	} else {
-		gologger.Errorf("【TYC】未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("【TYC】未知错误 %d\n", resp.StatusCode())
 		gologger.Debugf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
 		gologger.Debugf("【TYC】\n%s\n", resp.Body())
 	}
