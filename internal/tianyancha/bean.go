@@ -3,6 +3,11 @@ package tianyancha
 import (
 	"crypto/tls"
 	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/antchfx/htmlquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/robertkrimen/otto"
@@ -10,10 +15,6 @@ import (
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"golang.org/x/net/html"
-	"net/http"
-	"regexp"
-	"strings"
-	"time"
 )
 
 type EnBen struct {
@@ -270,7 +271,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 			str := rr[0][1]
 			client.SetCookies(append(resp.Cookies(), &http.Cookie{Name: "acw_sc__v2", Value: str}))
 		}
-		gologger.Infof("【TYC】计算反爬获取Cookie成功 %s\n")
+		gologger.Infof("【TYC】计算反爬获取Cookie成功\n")
 		resp, _ = clientR.Send()
 	}
 
