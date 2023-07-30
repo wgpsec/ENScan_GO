@@ -299,7 +299,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("【TYC】请求错误 404 %s \n", url)
 	} else {
-		gologger.Errorf("【TYC】未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("【TYC】未知错误 %d\n", resp.StatusCode())
 		gologger.Debugf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
 		gologger.Debugf("【TYC】\n%s\n", resp.Body())
 	}

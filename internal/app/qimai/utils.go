@@ -3,15 +3,16 @@ package qimai
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
+	"sort"
+	"strings"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/utils"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
-	"net/http"
-	"sort"
-	"strings"
-	"time"
 )
 
 type EnsGo struct {
@@ -125,7 +126,7 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("目标不存在\n")
 	} else {
-		gologger.Errorf("未知错误 %s\n", resp.StatusCode())
+		gologger.Errorf("未知错误 %d\n", resp.StatusCode())
 	}
 	return ""
 }
