@@ -164,6 +164,11 @@ func Parse(options *ENOptions) {
 		//options.GetType = tmps
 	}
 
+	if options.IsMerge == true {
+		gologger.Infof("====已强制取消合并导出！====\n")
+		options.IsMergeOut = false
+	}
+
 	options.GetField = utils.SetStr(options.GetField)
 
 	options.ENConfig = conf
