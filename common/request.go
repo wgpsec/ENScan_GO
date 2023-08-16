@@ -19,7 +19,7 @@ func GetReq(url string, options *ENOptions) string {
 		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
 		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},
 		"Cookie":     {options.ENConfig.Cookies.Aiqicha},
-		"Referer":    {"https://aifanfan.baidu.com/"},
+		"Referer":    {"https://aiqicha.baidu.com/"},
 	}
 	resp, err := client.R().Get(url)
 
