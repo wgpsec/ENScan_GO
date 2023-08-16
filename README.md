@@ -71,6 +71,8 @@ ENScanGo在第一次使用时需要使用 -v 命令 生成配置文件信息
 
 ### 登陆配置
 
+**AQC**
+请注意获取COOKIE域名，默认查询为aiqicha.baidu.com，请勿使用 aiqicha.com
 Cookie信息请勿直接 `document.cookie`，可能因为http-only 选项无法复制全导致登陆失败
 
 ![image-20221028223835307](README/image-20221028223835307.png)
