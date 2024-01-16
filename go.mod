@@ -21,6 +21,7 @@ require (
 	go.mongodb.org/mongo-driver v1.9.0
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 	gopkg.in/yaml.v2 v2.4.0
+	gorm.io/gorm v1.25.5
 )
 
 require (
@@ -36,6 +37,8 @@ require (
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

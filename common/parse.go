@@ -62,7 +62,7 @@ func Parse(options *ENOptions) {
 	}
 
 	// 是否为API模式 加入基本参数判断
-	if !options.IsApiMode {
+	if !options.IsApiMode && !options.IsWebMode {
 		if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" {
 			flag.PrintDefaults()
 			os.Exit(0)

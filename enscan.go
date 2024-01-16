@@ -25,8 +25,19 @@ func main() {
 	common.Flag(&enOptions)
 	common.Parse(&enOptions)
 	//如果不是API模式就直接运行了
-	if !enOptions.IsApiMode {
+	if !enOptions.IsApiMode && !enOptions.IsWebMode {
 		runner.RunEnumeration(&enOptions)
+	} else if enOptions.IsWebMode {
+		//web模式，不加入队列，适合轻量级环境
+		//db.ConnDB = db.InitWebDb(&enOptions)
+		go api.RunWeb(&enOptions)
+		//监听系统信号判断退出操作
+		var quitSig = make(chan os.Signal, 1)
+		signal.Notify(quitSig, os.Interrupt, os.Kill)
+		select {
+		case <-quitSig:
+			log.Fatal("exit.by.signal")
+		}
 	} else {
 		db.InitRedis(&enOptions)
 		db.InitMongo(&enOptions)

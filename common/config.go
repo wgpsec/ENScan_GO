@@ -40,9 +40,11 @@ type ENOptions struct {
 	Deep           int
 	IsJsonOutput   bool
 	IsApiMode      bool
+	IsWebMode      bool
 	IsMergeOut     bool   //聚合
 	IsMerge        bool   //聚合
 	ClientMode     string //客户端模式
+	IsOnline       bool
 	ENConfig       *ENConfig
 }
 
@@ -80,6 +82,19 @@ type ENConfig struct {
 		Mongodb string `yaml:"mongodb"`
 		Redis   string `yaml:"redis"`
 	}
+	Web struct {
+		Port     string `yaml:"port"`
+		Database struct {
+			Type        string `yaml:"type"`
+			Host        string `yaml:"host"`
+			Port        int    `yaml:"port"`
+			User        string `yaml:"user"`
+			Password    string `yaml:"password"`
+			Name        string `yaml:"name"`
+			DBFile      string `yaml:"db_file"`
+			TablePrefix string `yaml:"table_prefix"`
+		}
+	}
 	Cookies struct {
 		Aldzs      string `yaml:"aldzs"`
 		Xlb        string `yaml:"xlb"`
@@ -95,6 +110,7 @@ type ENConfig struct {
 
 type EnInfos struct {
 	Id          primitive.ObjectID `bson:"_id"`
+	Search      string
 	Name        string
 	Pid         string
 	LegalPerson string
@@ -175,6 +191,17 @@ var configYaml = `version: 0.4
 common:
   output: ""            # 导出文件位置
   field: [ ]			# 查询字段 如["website"]
+web:
+  port: "32000"
+  database:
+    type: "sqlite3"
+    host: ""
+    port: 0
+    user: ""
+    password: ""
+    name: ""
+    db_file: "enscan.db"
+    table_prefix: "e_"
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie

@@ -279,15 +279,16 @@ func RunJob(options *common.ENOptions) {
 
 	wg.Wait()
 
-	// 如果不是API模式，而且不是批量文件形式查询 不是API 就合并导出到表格里面
-	if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode {
-		outputfile.OutPutExcelByMergeEnInfo(options)
+	if !options.IsOnline {
+		if options.IsWebMode {
+			outputfile.OutPutXDBByMergeEnInfo(options)
+		} else if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode {
+			// 如果不是API模式，而且不是批量文件形式查询 不是API 就合并导出到表格里面
+			outputfile.OutPutExcelByMergeEnInfo(options)
+		} else if options.IsApiMode {
+			outputfile.OutPutJsonByMergeEnInfo(options)
+		}
 	}
-	//合并导出到数据库
-	if options.IsApiMode {
-		outputfile.OutPutJsonByMergeEnInfo(options)
-	}
-
 }
 
 // AddTask 添加扫描任务信息到任务队列

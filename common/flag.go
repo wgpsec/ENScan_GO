@@ -41,6 +41,7 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsGetBranch, "branch", false, "查询分支机构（分公司）信息")
 	flag.BoolVar(&Info.IsSearchBranch, "is-branch", false, "深度查询分支机构信息（数量巨大）")
 	//web api
+	flag.BoolVar(&Info.IsWebMode, "web", false, "是否开启web")
 	flag.BoolVar(&Info.IsApiMode, "api", false, "是否API模式")
 	flag.StringVar(&Info.ClientMode, "client", "", "客户端模式通道 eg: task")
 	flag.BoolVar(&Info.IsDebug, "debug", false, "是否显示debug详细信息")
