@@ -29,6 +29,10 @@ else
   xgo -targets=linux/amd64,windows/amd64,darwin/amd64 -out enscan -ldflags="$ldflags"  .
 fi
 
+if [ -d 'build' ]; then
+    rm -rf build
+    echo "dir build existed, already removed."
+fi
 mkdir "build"
 mv enscan-* build
 cd build || exit
