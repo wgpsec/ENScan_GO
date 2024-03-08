@@ -63,13 +63,19 @@
 
 
 ## 使用指南
-请直接前往RELEASE下载编译好的文件使用
+### 第一次使用
+前往[RELEASE](https://github.com/wgpsec/ENScan_GO/releases)下载编译好的文件使用
 
-ENScanGo在第一次使用时需要使用 -v 命令 生成配置文件信息
+初次使用时需要使用 -v 命令生成配置文件信息
+```
+./enscan -v
+```
 
 **遇到问题请加上参数 --debug 提issue**
 
 如果查询不出来目标网站信息，可以都挂上BURP代理进行查询
+
+**自行编译请使用 go 编译命令，或使用编译脚本 build.sh**
 
 ### 登陆配置
 
