@@ -2,14 +2,14 @@ package common
 
 import (
 	"flag"
-	"github.com/wgpsec/ENScan/common/utils"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
-	yaml "gopkg.in/yaml.v2"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/wgpsec/ENScan/common/utils"
+	"github.com/wgpsec/ENScan/common/utils/gologger"
+	yaml "gopkg.in/yaml.v2"
 )
 
 func Parse(options *ENOptions) {
@@ -34,7 +34,7 @@ func Parse(options *ENOptions) {
 
 	//加载配置信息~
 	conf := new(ENConfig)
-	yamlFile, err := ioutil.ReadFile(cfgYName)
+	yamlFile, err := os.ReadFile(cfgYName)
 	if err != nil {
 		gologger.Fatalf("配置文件解析错误 #%v ", err)
 	}
