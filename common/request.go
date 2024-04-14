@@ -2,6 +2,7 @@ package common
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -32,6 +33,11 @@ func GetReq(url string, options *ENOptions) string {
 		return GetReq(url, options)
 	}
 	if resp.StatusCode() == 200 {
+		if strings.Contains(string(resp.Body()), "百度安全验证") {
+			gologger.Errorf("【AQC】需要安全验证，请打开链接进行验证后操作，10秒后重试！ %s \n", url)
+			time.Sleep(10 * time.Second)
+			return GetReq(url, options)
+		}
 		return string(resp.Body())
 	} else if resp.StatusCode() == 403 {
 		gologger.Errorf("【AQC】ip被禁止访问网站，请更换ip\n")
