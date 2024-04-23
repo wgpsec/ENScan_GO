@@ -298,6 +298,10 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		gologger.Errorf("【TYC】需要更新Cookie\n")
 	} else if resp.StatusCode() == 404 {
 		gologger.Errorf("【TYC】请求错误 404 %s \n", url)
+	} else if resp.StatusCode() == 429 {
+		gologger.Errorf("【TYC】429 请求被拦截，清打开链接滑动验证码，将在10秒后重试 %s \n", url)
+		time.Sleep(10 * time.Second)
+		return GetReq(url, data, options)
 	} else {
 		gologger.Errorf("【TYC】未知错误 %d\n", resp.StatusCode())
 		gologger.Debugf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
