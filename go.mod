@@ -2,8 +2,6 @@ module github.com/wgpsec/ENScan
 
 go 1.21
 
-toolchain go1.22.1
-
 require (
 	github.com/antchfx/htmlquery v1.2.4
 	github.com/go-resty/resty/v2 v2.7.0
