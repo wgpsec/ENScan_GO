@@ -7,8 +7,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/outputfile"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
+	"github.com/wgpsec/ENScan/common/gologger"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,7 +16,7 @@ import (
 func getReq(searchType string, data map[string]string) gjson.Result {
 	url := fmt.Sprintf("https://zhishuapi.aldwx.com/Main/action/%s", searchType)
 	client := resty.New()
-	client.SetTimeout(common.RequestTimeOut)
+	//client.SetTimeout(common.RequestTimeOut)
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	client.Header = http.Header{
 		"User-Agent":   {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"},
@@ -31,20 +30,20 @@ func getReq(searchType string, data map[string]string) gjson.Result {
 	}
 	res := gjson.Parse(string(resp.Body()))
 	if res.Get("code").String() != "200" {
-		gologger.Errorf("【aldzs】似乎出了点问题 %s \n", res.Get("msg"))
+		gologger.Error().Msgf("【aldzs】似乎出了点问题 %s \n", res.Get("msg"))
 	}
 	return res.Get("data")
 }
 
-func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
+func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*common.ENSMap) {
 	ensInfos = &common.EnInfos{}
 	ensInfos.Infos = make(map[string][]gjson.Result)
-	ensOutMap = make(map[string]*outputfile.ENSMap)
+	ensOutMap = make(map[string]*common.ENSMap)
 
 	keyword := options.KeyWord
 	//拿到Token信息
-	token := options.CookieInfo
-	gologger.Infof("查询关键词 %s 的小程序\n", keyword)
+	token := ""
+	gologger.Info().Msgf("查询关键词 %s 的小程序\n", keyword)
 	appList := getReq("Search/Search/search", map[string]string{
 		"appName":    keyword,
 		"page":       "1",
@@ -67,7 +66,7 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 	}
 	table.Render()
 	//默认取第一个进行查询
-	gologger.Infof("查询 %s 开发的相关小程序 【默认取100个】\n", appList[0].Get("company"))
+	gologger.Info().Msgf("查询 %s 开发的相关小程序 【默认取100个】\n", appList[0].Get("company"))
 	appKey := appList[0].Get("appKey").String()
 	sAppList := getReq("Miniapp/App/sameBodyAppList", map[string]string{
 		"appKey": appKey,
@@ -89,7 +88,7 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 	table.Render()
 
 	for k, v := range getENMap() {
-		ensOutMap[k] = &outputfile.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
+		ensOutMap[k] = &common.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
 	}
 	return ensInfos, ensOutMap
 }
