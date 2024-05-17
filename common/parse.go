@@ -13,11 +13,6 @@ import (
 
 func Parse(options *ENOptions) {
 
-	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" {
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
-
 	//DEBUG模式设定
 	if options.IsDebug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
@@ -57,6 +52,11 @@ func Parse(options *ENOptions) {
 		gologger.Fatal().Msgf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
 
+	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
 	//初始化输出文件夹位置
 	if options.Output == "" {
 		options.Output = "outs"
@@ -82,7 +82,7 @@ func Parse(options *ENOptions) {
 
 	//如果是指定全部数据
 	if options.ScanType == "all" {
-		options.GetType = []string{"aqc", "tyc"}
+		options.GetType = []string{"aqc", "xlb", "qcc", "tyc", "qcc"}
 		options.IsMergeOut = true
 	} else if options.ScanType != "" {
 		options.GetType = strings.Split(options.ScanType, ",")
