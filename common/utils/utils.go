@@ -96,7 +96,7 @@ func DelInList(target string, list []string) []string {
 	return result
 }
 
-func ReadFile(filename string) []string {
+func ReadFileOutLine(filename string) []string {
 	var result []string
 	if FileExists(filename) {
 		f, err := os.Open(filename)
@@ -115,7 +115,6 @@ func ReadFile(filename string) []string {
 		_ = f.Close()
 	}
 	result = SetStr(result)
-	gologger.Info().Msgf("读取到 %d 条信息（已去重）\n", len(result))
 	return result
 }
 

@@ -61,6 +61,11 @@ func Parse(options *ENOptions) {
 	if options.Output == "" {
 		options.Output = "outs"
 	}
+
+	if options.IsJsonOutput {
+		options.OutPutType = "json"
+	}
+
 	if options.Output == "!" {
 		gologger.Info().Msgf("当前模式不会导出文件信息！\n")
 	}
@@ -82,7 +87,7 @@ func Parse(options *ENOptions) {
 
 	//如果是指定全部数据
 	if options.ScanType == "all" {
-		options.GetType = []string{"aqc", "xlb", "qcc", "tyc", "qcc"}
+		options.GetType = ENSTypes
 		options.IsMergeOut = true
 	} else if options.ScanType != "" {
 		options.GetType = strings.Split(options.ScanType, ",")
@@ -111,6 +116,11 @@ func Parse(options *ENOptions) {
 			gologger.Fatal().Msgf("没有获取字段信息！\n" + options.GetFlags)
 		}
 	}
+
+	if options.UPOutFile != "" && len(options.GetField) > 1 {
+		gologger.Fatal().Msgf("自更新导出仅支持输出一个参数！⌈%s⌋", options.GetField)
+	}
+
 	// 是否深度获取分支机构
 	if options.IsSearchBranch {
 		options.IsGetBranch = true
@@ -135,10 +145,10 @@ func Parse(options *ENOptions) {
 	}
 	options.GetField = utils.SetStr(options.GetField)
 
-	if options.IsMerge == true {
+	if options.IsNoMerge {
 		gologger.Info().Msgf("批量查询文件将单独导出！\n")
 	}
-	options.IsMergeOut = !options.IsMerge
+	options.IsMergeOut = !options.IsNoMerge
 	options.GetField = utils.SetStr(options.GetField)
 	options.ENConfig = conf
 }

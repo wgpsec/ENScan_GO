@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
+	"github.com/wgpsec/ENScan/common/utils"
 	"github.com/wgpsec/ENScan/runner"
 	"log"
 	"os"
@@ -16,13 +17,15 @@ func main() {
 		for {
 			select {
 			case <-quitSig:
-				if !runner.CurDone {
-					gologger.Error().Msgf("任务未完成退出，自动保存文件！数据长度 %d", len(runner.TmpData))
-					rdata := common.InfoToMap(runner.TmpData, runner.CurrJob.GetENMap(), "")
-					err := common.OutFileByEnInfo(rdata, "意外退出保存文件", "xlsx", "outs")
-					if err != nil {
-						gologger.Error().Msgf(err.Error())
-					}
+				gologger.Error().Msgf("任务未完成退出，自动保存过程文件！")
+				enDataList := make(map[string][]map[string]string)
+				close(runner.EnCh)
+				for ch := range runner.EnCh {
+					utils.MergeMap(ch, enDataList)
+				}
+				err := common.OutFileByEnInfo(enDataList, "意外退出保存文件", "xlsx", "outs")
+				if err != nil {
+					gologger.Error().Msgf(err.Error())
 				}
 				log.Fatal("exit.by.signal")
 			}

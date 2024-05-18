@@ -29,7 +29,7 @@ func (h *QD) AdvanceFilter() ([]gjson.Result, error) {
 	enList := res.Get("data.data").Array()
 	if len(enList) == 0 {
 		gologger.Debug().Str("查询请求", h.Options.KeyWord).Msg(content)
-		return enList, fmt.Errorf("【AQC】没有查询到关键词 %s", h.Options.KeyWord)
+		return enList, fmt.Errorf("【QD】没有查询到关键词 %s", h.Options.KeyWord)
 	}
 	return enList, nil
 }

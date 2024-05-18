@@ -31,7 +31,6 @@ func Flag(Info *ENOptions) {
 	flag.StringVar(&Info.CompanyID, "i", "", "公司PID")
 	flag.StringVar(&Info.InputFile, "f", "", "批量查询，文本按行分隔")
 	flag.StringVar(&Info.ScanType, "type", "aqc", "查询渠道，可多选")
-	flag.StringVar(&Info.Output, "o", "", "结果输出的文件夹位置(默认为outs)")
 	//查询参数指定
 	flag.Float64Var(&Info.InvestNum, "invest", 0, "投资比例 eg 100")
 	flag.StringVar(&Info.GetFlags, "field", "", "获取字段信息 eg icp")
@@ -41,6 +40,9 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsGetBranch, "branch", false, "查询分支机构（分公司）信息")
 	flag.BoolVar(&Info.IsSearchBranch, "is-branch", false, "深度查询分支机构信息（数量巨大）")
 	flag.BoolVar(&Info.IsJsonOutput, "json", false, "json导出")
+	flag.StringVar(&Info.Output, "out-dir", "", "结果输出的文件夹位置(默认为outs)")
+	flag.StringVar(&Info.UPOutFile, "out-update", "", "导出指定范围文件，自更新")
+	flag.StringVar(&Info.OutPutType, "out-type", "xlsx", "导出的文件后缀 默认xlsx")
 	flag.BoolVar(&Info.IsDebug, "debug", false, "是否显示debug详细信息")
 	flag.BoolVar(&Info.IsShow, "is-show", true, "是否展示信息输出")
 	//其他设定
@@ -49,7 +51,7 @@ func Flag(Info *ENOptions) {
 	flag.IntVar(&Info.DelayTime, "delay", 0, "每个请求延迟（S）-1为随机延迟1-5S")
 	flag.StringVar(&Info.Proxy, "proxy", "", "设置代理")
 	flag.IntVar(&Info.TimeOut, "timeout", 1, "每个请求默认1（分钟）超时")
-	flag.BoolVar(&Info.IsMerge, "no-merge", false, "批量查询文件单独导出")
+	flag.BoolVar(&Info.IsNoMerge, "no-merge", false, "开启后查询文件将单独导出")
 	flag.BoolVar(&Info.Version, "v", false, "版本信息")
 	flag.Parse()
 }

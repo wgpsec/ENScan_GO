@@ -26,8 +26,11 @@ func AdvanceFilter(job _interface.ENScan) string {
 	return ""
 }
 
-func getInfoById(pid string, searchList []string, enJob *EnJob) (enInfo map[string][]gjson.Result) {
-	job := enJob.job
+func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo map[string][]gjson.Result) {
+	if pid == "" {
+		gologger.Error().Msgf("获取PID为空！")
+		return map[string][]gjson.Result{}
+	}
 	enMap := job.GetENMap()
 	options := job.GetEnsD().Op
 	// 基本信息获取
@@ -57,7 +60,6 @@ func getInfoById(pid string, searchList []string, enJob *EnJob) (enInfo map[stri
 		}
 
 		if sk == "invest" {
-			dEnData := make(map[string][]gjson.Result)
 			var iEnData [][]gjson.Result
 			iEnData = append(iEnData, make([]gjson.Result, 0))
 			// 投资信息赋值
@@ -77,13 +79,10 @@ func getInfoById(pid string, searchList []string, enJob *EnJob) (enInfo map[stri
 					}
 					association = fmt.Sprintf("%s %d级 投资 %.2f", enName, i, investNum)
 					gologger.Info().Msgf("%s", association)
-					dEnData = getCompanyInfoById(tPid, association, searchList, job)
+					dEnData := getCompanyInfoById(tPid, association, searchList, job)
 					// 保存当前数据
 					for _, dr := range dEnData {
-						enInfo[sk] = append(enJob.info[sk], dr...)
-						// 全局存储，这里为了在过程中断时能存下来数据，所以临时存一份
-						// 后续替换为 channel
-						TmpData[sk] = append(TmpData[sk], dr...)
+						enInfo[sk] = append(enInfo[sk], dr...)
 					}
 					// 存下一层需要跑的信息
 					nextInK = append(nextInK, dEnData[sk]...)
@@ -95,28 +94,26 @@ func getInfoById(pid string, searchList []string, enJob *EnJob) (enInfo map[stri
 			association = fmt.Sprintf("%s %s", enName, enMap[sk].KeyWord)
 			gologger.Info().Msgf("%s", association)
 			// 增加数据，该类型下的全部企业数据
-			for _, r := range enInfo[sk] {
+			enLen := len(enInfo[sk])
+			for i, r := range enInfo[sk] {
+				gologger.Info().Msgf("[%d/%d]", i, enLen)
 				tPid := r.Get(pidName).String()
-				dEnData := make(map[string][]gjson.Result)
-				dEnData = getCompanyInfoById(tPid, association, searchList, job)
+				dEnData := getCompanyInfoById(tPid, association, searchList, job)
 				// 把查询完的一个企业按类别存起来
 				for _, dr := range dEnData {
 					enInfo[sk] = append(enInfo[sk], dr...)
-					// 全局存储，这里为了在过程中断时能存下来数据，所以临时存一份
-					// 后续替换为 channel
-					TmpData[sk] = append(TmpData[sk], dr...)
 				}
 			}
 		}
 	}
 
-	return enJob.info
+	return enInfo
 }
 
 func getCompanyInfoById(pid string, inFrom string, searchList []string, job _interface.ENScan) map[string][]gjson.Result {
 	enData := make(map[string][]gjson.Result)
 	res, enMap := job.GetCompanyBaseInfoById(pid)
-	gologger.Info().Msgf("查询⌈%s⌋信息", res.Get(job.GetENMap()["enterprise_info"].Field[0]))
+	gologger.Info().Msgf("正在获取⌈%s⌋信息", res.Get(job.GetENMap()["enterprise_info"].Field[0]))
 	// 增加企业信息
 	enJsonTMP, _ := sjson.Set(res.Raw, "inFrom", inFrom)
 	enData["enterprise_info"] = append(enData["enterprise_info"], gjson.Parse(enJsonTMP))
@@ -127,10 +124,9 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 		if _, ok := enMap[sk]; !ok {
 			continue
 		}
-		gologger.Debug().Msgf("%d %s", s.Total, s.Name)
 		// 没有这个数据就跳过去，提高速度
 		if s.Total <= 0 || s.Api == "" {
-			gologger.Info().Str("type", sk).Msgf("【X】%s 数量为空，跳过API\n", s.Name)
+			gologger.Info().Str("type", sk).Msgf("GET ⌈%s⌋ 为空", s.Name)
 			continue
 		}
 
@@ -145,9 +141,6 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 			valueTmp, _ := sjson.Set(y.Raw, "inFrom", inFrom)
 			gs := gjson.Parse(valueTmp)
 			enData[sk] = append(enData[sk], gs)
-			// 全局存储，这里为了在过程中断时能存下来数据，所以临时存一份
-			// 后续替换为 channel
-			TmpData[sk] = append(TmpData[sk], gs)
 		}
 		// 展示数据
 		utils.TBS(s.KeyWord, s.Field, listData)

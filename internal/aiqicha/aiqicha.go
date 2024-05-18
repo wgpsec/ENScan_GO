@@ -31,7 +31,7 @@ func (h *AQC) AdvanceFilter() ([]gjson.Result, error) {
 	ddw := gjson.Get(content, "ddw").Int()
 	if len(enList) == 0 {
 		gologger.Debug().Str("查询请求", name).Msg(content)
-		return enList, fmt.Errorf("【AQC】没有查询到关键词 %s", name)
+		return enList, fmt.Errorf("【AQC】没有查询到关键词 ⌈%s⌋", name)
 	}
 	// advanceFilterAjax 接口特殊处理
 	for i, v := range enList {

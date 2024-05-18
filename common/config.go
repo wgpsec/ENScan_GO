@@ -5,6 +5,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"path/filepath"
 	"time"
 )
 
@@ -42,8 +43,10 @@ type ENOptions struct {
 	IsDebug        bool
 	IsJsonOutput   bool
 	Deep           int
-	IsMergeOut     bool //聚合
-	IsMerge        bool //聚合
+	UPOutFile      string
+	IsMergeOut     bool   //聚合
+	IsNoMerge      bool   //聚合
+	OutPutType     string // 导出文件类型
 	ENConfig       *ENConfig
 }
 
@@ -73,13 +76,13 @@ type ENsD struct {
 }
 
 func (h *ENOptions) GetDelayRTime() int64 {
+	if h.DelayTime == -1 {
+		return utils.RangeRand(1, 5)
+	}
 	if h.DelayTime != 0 {
 		h.DelayMaxTime = int64(h.DelayTime)
 	}
-	if h.DelayMaxTime == 0 {
-		return 0
-	}
-	return utils.RangeRand(1, h.DelayMaxTime)
+	return 0
 }
 
 func (h *ENOptions) GetENConfig() *ENConfig {
@@ -112,6 +115,7 @@ var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", 
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var DeepSearch = []string{"invest", "branch", "holds", "supplier"}
+var ENSTypes = []string{"aqc", "tyc"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",
@@ -141,9 +145,9 @@ type ENConfig struct {
 	}
 }
 
-var cfgYName = utils.GetConfigPath() + "/config.yaml"
-var cfgYV = 1.0
-var configYaml = `version: 1.0
+var cfgYName = filepath.Join(utils.GetConfigPath(), "config.yaml")
+var cfgYV = 0.4
+var configYaml = `version: 0.4
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
@@ -154,4 +158,5 @@ cookies:
   xlb: ''               # 小蓝本   Token
   qimai: ''             # 七麦数据  Cookie
   chinaz: ''			# 站长之家  Cookie
+  veryvp: '' 			# veryvp  Cookie
 `

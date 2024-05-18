@@ -1,6 +1,8 @@
 package runner
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
@@ -8,6 +10,8 @@ import (
 	_interface "github.com/wgpsec/ENScan/interface"
 	"github.com/wgpsec/ENScan/internal/aiqicha"
 	"github.com/wgpsec/ENScan/internal/tianyancha"
+	"os"
+	"sync"
 	"time"
 )
 
@@ -16,49 +20,69 @@ type EnJob struct {
 	job  _interface.ENScan
 }
 
-var TmpData = make(map[string][]gjson.Result)
-var CurrJob _interface.ENScan
-var CurDone = false
+var EnCh chan map[string][]map[string]string
 
 // RunEnumeration 普通任务命令行模式，可批量导入文件查询
 func RunEnumeration(options *common.ENOptions) {
 	if options.InputFile != "" {
-		outFile := "xlsx"
-		if options.IsJsonOutput {
-			outFile = "json"
-		}
 		enDataList := make(map[string][]map[string]string)
-		if !options.IsMerge && !options.IsMergeOut {
-			gologger.Info().Msgf("批量查询已开启，如需单独输出企业请使用 --no-merge 取消合并\n")
-			options.IsMergeOut = true
-		}
-		res := utils.ReadFile(options.InputFile)
-		utils.SetStr(res)
+		res := utils.ReadFileOutLine(options.InputFile)
 		gologger.Info().Str("FileName", options.InputFile).Msgf("读取到 %d 条信息", len(res))
-		time.Sleep(5 * time.Second)
-		for k, v := range res {
-			if v == "" {
-				gologger.Error().Msgf("【第%d条】关键词为空，自动跳过\n", k+1)
-				continue
+		time.Sleep(1 * time.Second)
+		var wg sync.WaitGroup
+		EnCh = make(chan map[string][]map[string]string, len(res))
+		wg.Add(len(res))
+		go func() {
+			for k, v := range res {
+				gologger.Info().Msgf("\n⌈%d/%d⌋ 关键词：⌈%s⌋", k+1, len(res), v)
+				if options.ISKeyPid {
+					options.CompanyID = v
+				} else {
+					options.CompanyID = ""
+					options.KeyWord = v
+				}
+				jobRes := RunJob(options)
+				utils.MergeMap(jobRes, enDataList)
+				EnCh <- jobRes
+				wg.Done()
 			}
-			gologger.Info().Msgf("\n⌈%d/%d⌋ 关键词：⌈%s⌋", k+1, len(res), v)
-			if options.ISKeyPid {
-				options.CompanyID = v
-			} else {
-				options.CompanyID = ""
-				options.KeyWord = v
+		}()
+		go func() {
+			if options.UPOutFile != "" {
+				file, err := os.OpenFile(options.UPOutFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+				// 防止写入中文乱码
+				_, err = file.WriteString("\xEF\xBB\xBF")
+				if err != nil {
+					gologger.Fatal().Str("写入文件名", options.UPOutFile).Msgf("写入文件操作失败！")
+				}
+				defer func() {
+					if err = file.Close(); err != nil {
+						gologger.Error().Msgf("关闭文件时出错: %v", err)
+					}
+				}()
+				writer := bufio.NewWriter(file)
+				for {
+					select {
+					case data := <-EnCh:
+						_, err = writer.WriteString(common.OutStrByEnInfo(data, options.GetField[0]))
+						err = writer.Flush()
+						if err != nil {
+							gologger.Error().Msgf("写入数据失败: %v", err)
+						}
+					}
+				}
 			}
-			utils.MergeMap(RunJob(options), enDataList)
-			err := common.OutFileByEnInfo(enDataList, options.KeyWord, outFile, options.Output)
-			if err != nil {
-				gologger.Error().Msgf(err.Error())
-			}
-			CurDone = false
+		}()
+		wg.Wait()
+		err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
+		if err != nil {
+			gologger.Error().Msgf(err.Error())
 		}
-		CurDone = true
+
 	} else {
 		RunJob(options)
 	}
+
 }
 
 // RunJob 运行项目 添加新参数记得去Config添加
@@ -70,39 +94,46 @@ func RunJob(options *common.ENOptions) map[string][]map[string]string {
 		"tyc": &tianyancha.TYC{Options: options},
 	}
 	enDataList := make(map[string][]map[string]string)
-	outFile := "xlsx"
-	if options.IsJsonOutput {
-		outFile = "json"
-	}
+	var wg sync.WaitGroup
 	for _, jobType := range options.GetType {
-		var enJob EnJob
 		job := jobs[jobType]
-		enJob.job = job
-		CurrJob = job
-		// 搜索关键词id
-		pid := ""
-		if options.CompanyID != "" {
-			pid = options.CompanyID
-		} else {
-			pid = AdvanceFilter(job)
-		}
-		data := getInfoById(pid, options.GetField, &enJob)
-		rdata := common.InfoToMap(data, job.GetENMap(), "数据来源 "+jobType)
-		if !options.IsMergeOut {
-			err := common.OutFileByEnInfo(rdata, options.KeyWord, outFile, options.Output)
-			if err != nil {
-				gologger.Error().Msgf(err.Error())
+		wg.Add(1)
+		go func(jobType string) {
+			defer func() {
+				if x := recover(); x != nil {
+					gologger.Error().Msgf("⌈%s⌋出现错误", jobType)
+					wg.Done()
+				}
+			}()
+			// 搜索关键词id
+			pid := ""
+			if options.CompanyID != "" {
+				pid = options.CompanyID
+			} else {
+				pid = AdvanceFilter(job)
 			}
-		} else {
-			utils.MergeMap(rdata, enDataList)
-		}
+			if pid != "" {
+				data := getInfoById(pid, options.GetField, job)
+				rdata := common.InfoToMap(data, job.GetENMap(), fmt.Sprintf("%s⌈%s⌋", jobType, options.KeyWord))
+				if options.IsMergeOut {
+					utils.MergeMap(rdata, enDataList)
+				} else {
+					err := common.OutFileByEnInfo(rdata, options.KeyWord, options.OutPutType, options.Output)
+					if err != nil {
+						gologger.Error().Msgf(err.Error())
+					}
+				}
+			}
+			defer wg.Done()
+		}(jobType)
 	}
+
+	wg.Wait()
 	if options.IsMergeOut && options.InputFile == "" {
-		err := common.OutFileByEnInfo(enDataList, options.KeyWord, outFile, options.Output)
+		err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
 		if err != nil {
 			gologger.Error().Msgf(err.Error())
 		}
 	}
-	CurDone = true
 	return enDataList
 }

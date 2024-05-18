@@ -10,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
 // ENSMap 单独结构
 type ENSMap struct {
 	Name    string
-	Field   []string
 	JField  []string
 	KeyWord []string
 	Only    string
@@ -119,6 +119,26 @@ func InfoToMap(infos map[string][]gjson.Result, enMap map[string]*EnsGo, extraIn
 	return res
 }
 
+func OutStrByEnInfo(data map[string][]map[string]string, types string) (str string) {
+	var builder strings.Builder
+	s := data[types]
+	em := ENSMapLN[types].JField
+	for _, m := range s {
+		first := true
+		for _, key := range append(em, "from", "extra") {
+			if !first { // 如果不是第一个元素，则先写入逗号
+				builder.WriteString(",")
+			}
+			builder.WriteString(m[key])
+			first = false
+		}
+		builder.WriteString("\n")
+	}
+
+	str = builder.String()
+	return str
+}
+
 func OutFileByEnInfo(data map[string][]map[string]string, name string, types string, dir string) (err error) {
 	if dir == "!" {
 		gologger.Debug().Str("设定DIR", dir).Msgf("不导出文件")
@@ -158,8 +178,10 @@ func OutFileByEnInfo(data map[string][]map[string]string, name string, types str
 		for s, v := range data {
 			em := ENSMapLN[s]
 			exData := make([][]interface{}, len(v))
+			// 转换MAP格式为interface，进行excel写入
 			for i, m := range v {
 				if len(m) > 0 {
+					// 把信息全部提取出来，转为interface
 					for _, p := range append(em.JField, "from", "extra") {
 						exData[i] = append(exData[i], m[p])
 					}
