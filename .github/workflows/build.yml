@@ -2,14 +2,14 @@ name: build
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [ master,dev ]
 
 jobs:
   build:
     strategy:
       matrix:
-        platform: [ubuntu-latest]
-        go-version: [1.22.1]
+        platform: [ ubuntu-latest ]
+        go-version: [ 1.22.1 ]
     name: Build
     runs-on: ${{ matrix.platform }}
     steps:
