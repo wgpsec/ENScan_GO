@@ -77,12 +77,12 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 					if investNum < options.InvestNum {
 						continue
 					}
-					association = fmt.Sprintf("%s %d级 投资 %.2f", enName, i, investNum)
+					association = fmt.Sprintf("%s %d级 投资 %.2f", enName, i+1, investNum)
 					gologger.Info().Msgf("%s", association)
 					dEnData := getCompanyInfoById(tPid, association, searchList, job)
 					// 保存当前数据
-					for _, dr := range dEnData {
-						enInfo[sk] = append(enInfo[sk], dr...)
+					for dk, dr := range dEnData {
+						enInfo[dk] = append(enInfo[dk], dr...)
 					}
 					// 存下一层需要跑的信息
 					nextInK = append(nextInK, dEnData[sk]...)
@@ -100,8 +100,8 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 				tPid := r.Get(pidName).String()
 				dEnData := getCompanyInfoById(tPid, association, searchList, job)
 				// 把查询完的一个企业按类别存起来
-				for _, dr := range dEnData {
-					enInfo[sk] = append(enInfo[sk], dr...)
+				for dk, dr := range dEnData {
+					enInfo[dk] = append(enInfo[dk], dr...)
 				}
 			}
 		}
