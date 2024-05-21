@@ -8,6 +8,7 @@ package utils
  **/
 
 import (
+	"fmt"
 	"github.com/xuri/excelize/v2"
 	"strconv"
 )
@@ -21,7 +22,13 @@ const maxCharCount = 26
 // rows 数据切片，是一个二维数组
 // f 为了创建多个单元格，得把标签往外放
 func ExportExcel(sheetName string, headers []string, rows [][]interface{}, f *excelize.File) (*excelize.File, error) {
-	sheetIndex := f.NewSheet(sheetName)
+	sheetIndex, err := f.GetSheetIndex(sheetName)
+	if sheetIndex == -1 {
+		sheetIndex, err = f.NewSheet(sheetName)
+	}
+	if err != nil {
+		return nil, err
+	}
 	maxColumnRowNameLen := 1 + len(strconv.Itoa(len(rows)))
 	columnCount := len(headers)
 	if columnCount > maxCharCount {
@@ -80,4 +87,61 @@ func getColumnRowName(columnName []byte, rowIndex int) (columnRowName string) {
 	// 将列名恢复回去
 	columnName = columnName[:l]
 	return
+}
+
+func StreamWriterFunc(contents [][]string) {
+	//打开工作簿
+	file, err := excelize.OpenFile("Book1.xlsx")
+	if err != nil {
+		return
+	}
+	sheet_name := "Sheet1"
+	//获取流式写入器
+	streamWriter, _ := file.NewStreamWriter(sheet_name)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	rows, _ := file.GetRows(sheet_name) //获取行内容
+	cols, _ := file.GetCols(sheet_name) //获取列内容
+	fmt.Println("行数rows:  ", len(rows), "列数cols:  ", len(cols))
+
+	//将源文件内容先写入excel
+	for rowid, row_pre := range rows {
+		row_p := make([]interface{}, len(cols))
+		for colID_p := 0; colID_p < len(cols); colID_p++ {
+			//fmt.Println(row_pre)
+			//fmt.Println(colID_p)
+			if row_pre == nil {
+				row_p[colID_p] = nil
+			} else {
+				row_p[colID_p] = row_pre[colID_p]
+			}
+		}
+		cell_pre, _ := excelize.CoordinatesToCellName(1, rowid+1)
+		if err := streamWriter.SetRow(cell_pre, row_p); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	//将新加contents写进流式写入器
+	for rowID := 0; rowID < len(contents); rowID++ {
+		row := make([]interface{}, len(contents[0]))
+		for colID := 0; colID < len(contents[0]); colID++ {
+			row[colID] = contents[rowID][colID]
+		}
+		cell, _ := excelize.CoordinatesToCellName(1, rowID+len(rows)+1) //决定写入的位置
+		if err := streamWriter.SetRow(cell, row); err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	//结束流式写入过程
+	if err := streamWriter.Flush(); err != nil {
+		fmt.Println(err)
+	}
+	//保存工作簿
+	if err := file.SaveAs("Book1.xlsx"); err != nil {
+		fmt.Println(err)
+	}
 }

@@ -3,16 +3,15 @@ package qimai
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/go-resty/resty/v2"
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/gologger"
+	"github.com/wgpsec/ENScan/common/utils"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/go-resty/resty/v2"
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/utils"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 type EnsGo struct {
@@ -85,7 +84,7 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	if options.Proxy != "" {
 		client.SetProxy(options.Proxy)
 	}
-	gologger.Debugf("[qimai] url: %s, params: %s\n", url, params)
+	gologger.Debug().Msgf("[qimai] url: %s, params: %s\n", url, params)
 	cookie := options.ENConfig.Cookies.QiMai
 	cookie = strings.ReplaceAll(cookie, "syncd", "syncds")
 	cookie = cookie + ";synct=1690024926.196; syncd=-1652"
@@ -106,27 +105,27 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	params["analysis"] = analysis
 	urls := "https://api.qimai.cn/" + url
 	resp, err := client.R().SetQueryParams(params).Get(urls)
-	gologger.Debugf("%s", resp)
+	gologger.Debug().Msgf("【qimai】%s\n", resp)
 	if err != nil {
 		if options.Proxy != "" {
 			client.RemoveProxy()
 		}
-		gologger.Errorf("请求发生错误，5秒后重试\n%s\n", err)
+		gologger.Error().Msgf("请求发生错误，5秒后重试\n%s\n", err)
 		time.Sleep(5 * time.Second)
 		return GetReq(url, params, options)
 	}
 	if resp.StatusCode() == 200 {
 		return string(resp.Body())
 	} else if resp.StatusCode() == 403 {
-		gologger.Errorf("ip被禁止访问网站，请更换ip\n")
+		gologger.Error().Msgf("ip被禁止访问网站，请更换ip\n")
 	} else if resp.StatusCode() == 401 {
-		gologger.Errorf("Cookie有问题或过期，请重新获取\n")
+		gologger.Error().Msgf("Cookie有问题或过期，请重新获取\n")
 	} else if resp.StatusCode() == 302 {
-		gologger.Errorf("需要更新Cookie\n")
+		gologger.Error().Msgf("需要更新Cookie\n")
 	} else if resp.StatusCode() == 404 {
-		gologger.Errorf("目标不存在\n")
+		gologger.Error().Msgf("目标不存在\n")
 	} else {
-		gologger.Errorf("未知错误 %d\n", resp.StatusCode())
+		gologger.Error().Msgf("未知错误 %s\n", resp.StatusCode())
 	}
 	return ""
 }

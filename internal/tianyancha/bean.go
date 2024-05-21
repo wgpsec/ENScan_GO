@@ -3,225 +3,122 @@ package tianyancha
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/antchfx/htmlquery"
+	"github.com/go-resty/resty/v2"
+	"github.com/robertkrimen/otto"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/gologger"
+	"golang.org/x/net/html"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/antchfx/htmlquery"
-	"github.com/go-resty/resty/v2"
-	"github.com/robertkrimen/otto"
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
-	"golang.org/x/net/html"
 )
 
-type EnBen struct {
-	Pid           string `json:"pid"`
-	EntName       string `json:"entName"`
-	EntType       string `json:"entType"`
-	ValidityFrom  string `json:"validityFrom"`
-	Domicile      string `json:"domicile"`
-	EntLogo       string `json:"entLogo"`
-	OpenStatus    string `json:"openStatus"`
-	LegalPerson   string `json:"legalPerson"`
-	LogoWord      string `json:"logoWord"`
-	TitleName     string `json:"titleName"`
-	TitleLegal    string `json:"titleLegal"`
-	TitleDomicile string `json:"titleDomicile"`
-	RegCap        string `json:"regCap"`
-	Scope         string `json:"scope"`
-	RegNo         string `json:"regNo"`
-	PersonTitle   string `json:"personTitle"`
-	PersonID      string `json:"personId"`
-}
-
-type EnsGo struct {
-	name           string
-	total          int64
-	available      int64
-	api            string
-	gNum           string
-	tgNum          string
-	sData          map[string]string
-	gsData         string // get请求需要加的特殊参数
-	rf             string //返回字段的json位置
-	field          []string
-	keyWord        []string
-	PosiToTake     []int
-	PosiToTaeS     [][]int
-	NumOfEachGroup int //每组数量 总TR数除以行数计算，一条数据
-}
-
-type EnInfo struct {
-	Pid         string `json:"pid"`
-	EntName     string `json:"entName"`
-	legalPerson string
-	openStatus  string
-	email       string
-	telephone   string
-	branchNum   int64
-	investNum   int64
-	//info
-	Infos  map[string][]gjson.Result
-	ensMap map[string]*EnsGo
-	//other
-	investInfos map[string]EnInfo
-	branchInfos map[string]EnInfo
-}
-
-type EnInfos struct {
-	Name        string
-	Pid         string
-	legalPerson string
-	openStatus  string
-	email       string
-	telephone   string
-	branchNum   int64
-	investNum   int64
-	Infos       map[string][]gjson.Result
-}
-
-func getENMap() map[string]*EnsGo {
-	ensInfoMap := make(map[string]*EnsGo)
-	ensInfoMap = map[string]*EnsGo{
+func getENMap() map[string]*common.EnsGo {
+	ensInfoMap := make(map[string]*common.EnsGo)
+	ensInfoMap = map[string]*common.EnsGo{
 		"enterprise_info": {
-			name:       "企业信息",
-			field:      []string{"name", "legalPersonName", "regStatus", "phoneNumber", "email", "regCapitalAmount", "fromTime", "taxAddress", "businessScope", "creditCode", "id"},
-			keyWord:    []string{"企业名称", "法人代表", "经营状态", "电话", "邮箱", "注册资本", "成立日期", "注册地址", "经营范围", "统一社会信用代码", "PID"},
-			PosiToTaeS: [][]int{{0}, {1, 2}, {1, 4}, {1}, {2}, {3, 2}, {2, 2}, {10, 2}, {11, 2}, {5, 2}, {}},
+			Name:    "企业信息",
+			Field:   []string{"name", "legalPersonName", "regStatus", "phoneNumber", "email", "regCapitalAmount", "fromTime", "taxAddress", "businessScope", "creditCode", "id"},
+			KeyWord: []string{"企业名称", "法人代表", "经营状态", "电话", "邮箱", "注册资本", "成立日期", "注册地址", "经营范围", "统一社会信用代码", "PID"},
 		},
 		"icp": {
-			name: "ICP备案",
-			api:  "cloud-intellectual-property/intellectualProperty/icpRecordList",
-			gNum: "icpCount",
-			//api:        "pagination/icp.xhtml",
-			tgNum:      "knowledgeProperty.subItem.icpCount.num",
-			rf:         "item",
-			field:      []string{"webName", "webSite", "ym", "liscense", "companyName"},
-			keyWord:    []string{"网站名称", "网址", "域名", "网站备案/许可证号", "公司名称"},
-			PosiToTake: []int{3, 4, 5, 6, 0},
+			Name:    "ICP备案",
+			Api:     "cloud-intellectual-property/intellectualProperty/icpRecordList",
+			GNum:    "icpCount",
+			Rf:      "item",
+			Field:   []string{"webName", "webSite", "ym", "liscense", "companyName"},
+			KeyWord: []string{"网站名称", "网址", "域名", "网站备案/许可证号", "公司名称"},
 		},
 		"app": {
-			name: "APP",
-			api:  "cloud-business-state/v3/ar/appbkinfo",
-			gNum: "productinfo",
-			//api:            "pagination/product.xhtml",
-			tgNum:      "manageStatus.subItem.productinfo.num",
-			rf:         "items",
-			field:      []string{"filterName", "classes", "", "", "brief", "icon", "", "", ""},
-			keyWord:    []string{"名称", "分类", "当前版本", "更新时间", "简介", "logo", "Bundle ID", "链接", "market"},
-			PosiToTake: []int{2, 6, 0, 0, 5, 2, 0, 0, 0},
+			Name:    "APP",
+			Api:     "cloud-business-state/v3/ar/appbkinfo",
+			GNum:    "productinfo",
+			Rf:      "items",
+			Field:   []string{"filterName", "classes", "", "", "brief", "icon", "", "", ""},
+			KeyWord: []string{"名称", "分类", "当前版本", "更新时间", "简介", "logo", "Bundle ID", "链接", "market"},
 		},
 		"weibo": {
-			name: "微博",
-			api:  "cloud-business-state/weibo/list",
-			//api:        "pagination/weibo.xhtml",
-			tgNum:      "manageStatus.subItem.weiboCount.num",
-			gNum:       "weiboCount",
-			rf:         "result",
-			field:      []string{"name", "href", "info", "ico"},
-			keyWord:    []string{"微博昵称", "链接", "简介", "logo"},
-			PosiToTake: []int{2, 2, 4, 2},
+			Name:    "微博",
+			Api:     "cloud-business-state/weibo/list",
+			GNum:    "weiboCount",
+			Rf:      "result",
+			Field:   []string{"name", "href", "info", "ico"},
+			KeyWord: []string{"微博昵称", "链接", "简介", "logo"},
 		},
 		"wechat": {
-			name: "微信公众号",
-			api:  "cloud-business-state/wechat/list",
-			//api:        "pagination/wechat.xhtml",
-			gNum:       "weChatCount",
-			tgNum:      "manageStatus.subItem.weChatCount.num",
-			rf:         "resultList",
-			field:      []string{"title", "publicNum", "recommend", "codeImg", "titleImgURL"},
-			keyWord:    []string{"名称", "ID", "描述", "二维码", "logo"},
-			PosiToTake: []int{4, 5, 7, 6, 3},
+			Name:    "微信公众号",
+			Api:     "cloud-business-state/wechat/list",
+			GNum:    "weChatCount",
+			Rf:      "resultList",
+			Field:   []string{"title", "publicNum", "recommend", "codeImg", "titleImgURL"},
+			KeyWord: []string{"名称", "ID", "描述", "二维码", "logo"},
 		},
 		"job": {
-			name: "招聘信息",
-			api:  "cloud-business-state/recruitment/list",
-			//api:            "pagination/baipin.xhtml",
-			tgNum:      "manageStatus.subItem.baipinCount.num",
-			gNum:       "baipinCount",
-			rf:         "list",
-			field:      []string{"title", "education", "city", "startDate", "wapInfoPath"},
-			keyWord:    []string{"招聘职位", "学历要求", "工作地点", "发布日期", "招聘描述"},
-			PosiToTake: []int{3, 5, 7, 2, 0},
+			Name:    "招聘信息",
+			Api:     "cloud-business-state/recruitment/list",
+			GNum:    "baipinCount",
+			Rf:      "list",
+			Field:   []string{"title", "education", "city", "startDate", "wapInfoPath"},
+			KeyWord: []string{"招聘职位", "学历要求", "工作地点", "发布日期", "招聘描述"},
 		},
 		"copyright": {
-			name: "软件著作权",
-			//api:        "pagination/copyright.xhtml",
-			api:        "cloud-intellectual-property/intellectualProperty/softwareCopyrightListV2",
-			gNum:       "copyrightWorks",
-			rf:         "items",
-			tgNum:      "knowledgeProperty.subItem.cpoyRCount.num",
-			field:      []string{"simplename", "fullname", "", "regnum", ""},
-			keyWord:    []string{"软件名称", "软件简介", "分类", "登记号", "权利取得方式"},
-			PosiToTake: []int{3, 4, 6, 5, 0},
+			Name:    "软件著作权",
+			Api:     "cloud-intellectual-property/intellectualProperty/softwareCopyrightListV2",
+			GNum:    "copyrightWorks",
+			Rf:      "items",
+			Field:   []string{"simplename", "fullname", "", "regnum", ""},
+			KeyWord: []string{"软件名称", "软件简介", "分类", "登记号", "权利取得方式"},
 		},
 		"supplier": {
-			name: "供应商",
-			//api:        "pagination/supplies.xhtml",
-			api:        "cloud-business-state/supply/summaryList",
-			gNum:       "suppliesV2Count",
-			tgNum:      "manageStatus.subItem.suppliesV2Count.num",
-			rf:         "pageBean.result",
-			gsData:     "&year=-100",
-			field:      []string{"supplier_name", "ratio", "amt", "announcement_date", "dataSource", "relationship", "supplier_graphId"},
-			keyWord:    []string{"名称", "金额占比", "金额", "报告期/公开时间", "数据来源", "关联关系", "PID"},
-			PosiToTake: []int{2, 3, 4, 5, 6, 7, 2},
+			Name:    "供应商",
+			Api:     "cloud-business-state/supply/summaryList",
+			GNum:    "suppliesV2Count",
+			Rf:      "pageBean.result",
+			GsData:  "&year=-100",
+			Field:   []string{"supplier_name", "ratio", "amt", "announcement_date", "dataSource", "relationship", "supplier_graphId"},
+			KeyWord: []string{"名称", "金额占比", "金额", "报告期/公开时间", "数据来源", "关联关系", "PID"},
 		},
 		"invest": {
-			name:  "投资信息",
-			api:   "cloud-company-background/company/investListV2",
-			tgNum: "backgroundItem.subItem.inverstCount.num",
-			//api:        "pagination/invest.xhtml",
-			gNum:       "inverstCount",
-			rf:         "result",
-			sData:      map[string]string{"category": "-100", "percentLevel": "-100", "province": "-100"},
-			field:      []string{"name", "legalPersonName", "regStatus", "percent", "id"},
-			keyWord:    []string{"企业名称", "法人", "状态", "投资比例", "PID"},
-			PosiToTake: []int{2, 3, 7, 6, 2},
+			Name:    "投资信息",
+			Api:     "cloud-company-background/company/investListV2",
+			GNum:    "inverstCount",
+			Rf:      "result",
+			SData:   map[string]string{"category": "-100", "percentLevel": "-100", "province": "-100"},
+			Field:   []string{"name", "legalPersonName", "regStatus", "percent", "id"},
+			KeyWord: []string{"企业名称", "法人", "状态", "投资比例", "PID"},
 		},
 		"holds": {
-			name: "控股企业",
-			api:  "cloud-equity-provider/v4/hold/companyholding",
-			//api:            "pagination/companyholding.xhtml",
-			gNum:           "finalInvestCount",
-			tgNum:          "backgroundItem.subItem.finalInvestCount.num",
-			rf:             "list",
-			field:          []string{"name", "legalPersonName", "regStatus", "percent", "legalType", "cid"},
-			keyWord:        []string{"企业名称", "法人", "状态", "投资比例", "持股层级", "PID"},
-			PosiToTake:     []int{2, 0, 0, 5, 0, 4},
-			NumOfEachGroup: 7,
+			Name:    "控股企业",
+			Api:     "cloud-equity-provider/v4/hold/companyholding",
+			GNum:    "finalInvestCount",
+			Rf:      "list",
+			Field:   []string{"name", "legalPersonName", "regStatus", "percent", "legalType", "cid"},
+			KeyWord: []string{"企业名称", "法人", "状态", "投资比例", "持股层级", "PID"},
 		},
 		"branch": {
-			name: "分支信息",
-			//api:        "pagination/branch.xhtml",
-			api:        "cloud-company-background/company/branchList",
-			tgNum:      "backgroundItem.subItem.branchCount.num",
-			gNum:       "branchCount",
-			field:      []string{"name", "legalPersonName", "regStatus", "id"},
-			rf:         "result",
-			keyWord:    []string{"企业名称", "法人", "状态", "PID"},
-			PosiToTake: []int{4, 7, 10, 2},
+			Name:    "分支信息",
+			Api:     "cloud-company-background/company/branchList",
+			GNum:    "branchCount",
+			Field:   []string{"name", "legalPersonName", "regStatus", "id"},
+			Rf:      "result",
+			KeyWord: []string{"企业名称", "法人", "状态", "PID"},
 		},
 		"partner": {
-			name: "股东信息",
-			//api:        "pagination/holderCount.xhtml",
-			api:        "cloud-company-background/companyV2/dim/holderForWeb",
-			gNum:       "holderCount",
-			tgNum:      "backgroundItem.subItem.holderCount.num",
-			rf:         "result",
-			sData:      map[string]string{"percentLevel": "-100", "sortField": "capitalAmount", "sortType": "-100"},
-			field:      []string{"name", "finalBenefitShares", "amount", "id"},
-			keyWord:    []string{"股东名称", "持股比例", "认缴出资金额", "PID"},
-			PosiToTake: []int{2, 3, 5, 2},
+			Name:    "股东信息",
+			Api:     "cloud-company-background/companyV2/dim/holderForWeb",
+			GNum:    "holderCount",
+			Rf:      "result",
+			SData:   map[string]string{"percentLevel": "-100", "sortField": "capitalAmount", "sortType": "-100"},
+			Field:   []string{"name", "finalBenefitShares", "amount", "id"},
+			KeyWord: []string{"股东名称", "持股比例", "认缴出资金额", "PID"},
 		},
 	}
 
 	for k, _ := range ensInfoMap {
-		ensInfoMap[k].keyWord = append(ensInfoMap[k].keyWord, "数据关联")
-		ensInfoMap[k].field = append(ensInfoMap[k].field, "inFrom")
+		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
 	}
 	return ensInfoMap
 }
@@ -246,12 +143,11 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		client.Header.Set("Content-Type", "application/json")
 		client.Header.Del("Cookie")
 		client.Header.Set("X-Tycid", options.ENConfig.Cookies.Tycid)
-		//client.Header.Set("X-Auth-Token", "") //暂时好像没发现问题，等有问题再加上吧~
+		//client.Header.Set("X-Auth-Token", "")
 	}
-
+	//加延迟1S
 	//强制延时1s
 	time.Sleep(1 * time.Second)
-	//加入随机延迟
 	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
 	clientR := client.R()
 	if data == "" {
@@ -271,7 +167,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 			str := rr[0][1]
 			client.SetCookies(append(resp.Cookies(), &http.Cookie{Name: "acw_sc__v2", Value: str}))
 		}
-		gologger.Infof("【TYC】计算反爬获取Cookie成功\n")
+		gologger.Info().Msgf("【TYC】计算反爬获取Cookie成功 %s\n")
 		resp, _ = clientR.Send()
 	}
 
@@ -280,7 +176,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 			client.RemoveProxy()
 		}
 
-		gologger.Errorf("【TYC】请求错误 %s 5秒后重试 【%s】\n", url, err)
+		gologger.Error().Msgf("【TYC】请求错误 %s 5秒后重试 【%s】\n", url, err)
 		if err.Error() == "unexpected EOF" {
 			UpCookie(string(resp.Body()), options)
 
@@ -291,21 +187,22 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	if resp.StatusCode() == 200 {
 		return string(resp.Body())
 	} else if resp.StatusCode() == 403 {
-		gologger.Errorf("【TYC】ip被禁止访问网站，请更换ip\n")
+		gologger.Error().Msgf("【TYC】ip被禁止访问网站，请更换ip\n")
 	} else if resp.StatusCode() == 401 {
-		gologger.Errorf("【TYC】Cookie有问题或过期，请重新获取\n")
+		gologger.Error().Msgf("【TYC】Cookie有问题或过期，请重新获取\n")
 	} else if resp.StatusCode() == 302 {
-		gologger.Errorf("【TYC】需要更新Cookie\n")
+		gologger.Error().Msgf("【TYC】需要更新Cookie\n")
 	} else if resp.StatusCode() == 404 {
-		gologger.Errorf("【TYC】请求错误 404 %s \n", url)
+		gologger.Error().Msgf("【TYC】请求错误 404 %s \n", url)
 	} else if resp.StatusCode() == 429 {
-		gologger.Errorf("【TYC】429 请求被拦截，清打开链接滑动验证码，将在10秒后重试 %s \n", url)
+		gologger.Error().Msgf("【TYC】429请求被拦截，清打开链接滑动验证码，程序将在10秒后重试 %s \n", url)
 		time.Sleep(10 * time.Second)
 		return GetReq(url, data, options)
+
 	} else {
-		gologger.Errorf("【TYC】未知错误 %d\n", resp.StatusCode())
-		gologger.Debugf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
-		gologger.Debugf("【TYC】\n%s\n", resp.Body())
+		gologger.Error().Msgf("【TYC】未知错误 %s\n", resp.StatusCode())
+		gologger.Debug().Msgf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
+		gologger.Debug().Msgf("【TYC】\n%s\n", resp.Body())
 	}
 	return ""
 }
@@ -313,7 +210,10 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 func GetReqReturnPage(url string, options *common.ENOptions) *html.Node {
 	body := GetReq(url, "", options)
 	if strings.Contains(body, "请输入中国大陆手机号") {
-		gologger.Errorf("[TYC] COOKIE检查失效，请检查COOKIE是否正确！\n")
+		gologger.Error().Msgf("[TYC] COOKIE检查失效，请检查COOKIE是否正确！\n")
+	}
+	if strings.Contains(body, "当前暂时无法访问") {
+		gologger.Error().Msgf("[TYC] IP可能被拉黑！请使用代理尝试\n")
 	}
 	page, _ := htmlquery.Parse(strings.NewReader(body))
 	return page
@@ -330,18 +230,18 @@ func UpCookie(res string, options *common.ENOptions) {
 			if len(rr) > 0 {
 				str2 := rr[0][1]
 				if str2 != "" {
-					gologger.Infof("【TYC】反爬计算签名成功！\n")
+					gologger.Info().Msgf("【TYC】反爬计算签名成功！\n")
 					options.ENConfig.Cookies.Tianyancha = strings.ReplaceAll(options.ENConfig.Cookies.Tianyancha, str2, SingAwcSCV2(str))
 				} else {
-					gologger.Errorf("【TYC】反爬Cookie存在问题\n")
+					gologger.Error().Msgf("【TYC】反爬Cookie存在问题\n")
 				}
 			}
 		} else {
-			gologger.Infof("【TYC】未登录反爬计算签名成功！\n")
+			gologger.Info().Msgf("【TYC】未登录反爬计算签名成功！\n")
 			options.ENConfig.Cookies.Tianyancha = SingAwcSCV2(str)
 		}
 	} else {
-		gologger.Errorf("【TYC】反爬存在问题\n")
+		gologger.Error().Msgf("【TYC】反爬存在问题\n")
 	}
 }
 

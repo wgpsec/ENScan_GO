@@ -2,48 +2,46 @@ package coolapk
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/outputfile"
+	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 )
 
-func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
+func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*common.ENSMap) {
 	defer func() {
 		if x := recover(); x != nil {
-			gologger.Errorf("[coolapk] GetReq panic: %v", x)
+			gologger.Error().Msgf("[coolapk] GetReq panic: %v", x)
 		}
 	}()
 	ensInfos = &common.EnInfos{}
 	ensInfos.Infos = make(map[string][]gjson.Result)
-	ensOutMap = make(map[string]*outputfile.ENSMap)
+	ensOutMap = make(map[string]*common.ENSMap)
 	field := []string{"title", "catName", "apkversionname", "lastupdate", "shorttitle", "logo", "apkname", "", "", "inFrom"}
 	keyWord := []string{"名称", "分类", "当前版本", "更新时间", "简介", "logo", "Bundle ID", "链接", "market", "数据关联"}
-	ensOutMap["app"] = &outputfile.ENSMap{Name: "app", Field: field, KeyWord: keyWord}
+	ensOutMap["app"] = &common.ENSMap{Name: "app", Field: field, KeyWord: keyWord}
 	developer := options.KeyWord
-	gologger.Infof("酷安API查询 %s\n", developer)
+	gologger.Info().Msgf("酷安API查询 %s\n", developer)
 	deviceId := "34de7eef-8400-3300-8922-a1a34e7b9b4f"
 	ctime := time.Now().Unix()
 	md5Timestamp := utils.Md5(strconv.FormatInt(ctime, 10))
 	arg1 := "token://com.coolapk.market/c67ef5943784d09750dcfbb31020f0ab?" + md5Timestamp + "$" + deviceId + "&com.coolapk.market"
 	md5Str := utils.Md5(base64.StdEncoding.EncodeToString([]byte(arg1)))
 	token := md5Str + deviceId + "0x" + strconv.FormatInt(ctime, 16)
-	fmt.Println(token)
+	gologger.Debug().Msgf("[coolapk] TOKEN" + token)
 	url := "https://api.coolapk.com/v6/apk/search?searchType=developer&developer=" +
 		developer +
 		"&page=1&firstLaunch=0&installTime=" +
 		strconv.FormatInt(ctime, 10) +
 		"&lastItem=13988"
 	client := resty.New()
-	client.SetTimeout(common.RequestTimeOut)
+	//client.SetTimeout(common.RequestTimeOut)
 	client.Header = http.Header{
 		"X-App-Token":   {token},
 		"X-App-Version": {"10.5.3"},
@@ -60,13 +58,13 @@ func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[
 	resp, err := client.R().Get(url)
 
 	if err != nil {
-		gologger.Fatalf("coolapk 请求发生错误\n%s\n", err)
+		gologger.Fatal().Msgf("coolapk 请求发生错误\n%s\n", err)
 	}
 
 	appList := gjson.Get(string(resp.Body()), "data").Array()
 	ensInfos.Infos["app"] = appList
 	ensInfos.Name = options.KeyWord
-	gologger.Infof("酷安API 查询到 %d 条数据\n", len(appList))
+	gologger.Info().Msgf("酷安API 查询到 %d 条数据\n", len(appList))
 	if options.IsShow {
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader(keyWord)

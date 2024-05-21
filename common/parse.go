@@ -2,139 +2,132 @@ package common
 
 import (
 	"flag"
+	"github.com/gin-gonic/gin"
+	"github.com/projectdiscovery/gologger/levels"
+	"github.com/wgpsec/ENScan/common/gologger"
+	"github.com/wgpsec/ENScan/common/utils"
+	yaml "gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"strings"
-	"time"
-
-	"github.com/wgpsec/ENScan/common/utils"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
-	yaml "gopkg.in/yaml.v2"
 )
 
 func Parse(options *ENOptions) {
+
+	//DEBUG模式设定
+	if options.IsDebug {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+		gin.SetMode(gin.DebugMode)
+		gologger.Debug().Msgf("DEBUG 模式已开启\n")
+	}
+
 	//判断版本信息
 	if options.Version {
-		gologger.Infof("Current Version: %s\n", GitTag)
-		gologger.Infof("当前所需配置文件版本 V%.1f\n", cfgYV)
+		gologger.Info().Msgf("Current Version: %s\n", GitTag)
+		gologger.Info().Msgf("当前所需配置文件版本 V%.1f\n", cfgYV)
 		if ok, _ := utils.PathExists(cfgYName); !ok {
 			f, errs := os.Create(cfgYName) //创建文件
 			_, errs = io.WriteString(f, configYaml)
 			if errs != nil {
-				gologger.Fatalf("配置文件创建失败 %s\n", errs)
+				gologger.Fatal().Msgf("配置文件创建失败 %s\n", errs)
 			}
-			gologger.Infof("配置文件生成成功\n")
+			gologger.Info().Msgf("配置文件生成成功！\n")
 		}
 		os.Exit(0)
 	}
+
 	// 配置文件检查
 	if ok, _ := utils.PathExists(cfgYName); !ok {
-		gologger.Fatalf("没有找到配置文件 %s 请先运行 -v 创建\n", cfgYName)
+		gologger.Fatal().Msgf("没有找到配置文件 %s 请先运行 -v 创建\n", cfgYName)
 	}
 
 	//加载配置信息~
 	conf := new(ENConfig)
 	yamlFile, err := os.ReadFile(cfgYName)
 	if err != nil {
-		gologger.Fatalf("配置文件解析错误 #%v ", err)
+		gologger.Fatal().Msgf("配置文件解析错误 #%v ", err)
 	}
 	if err := yaml.Unmarshal(yamlFile, conf); err != nil {
-		gologger.Fatalf("【配置文件加载失败】: %v", err)
+		gologger.Fatal().Msgf("【配置文件加载失败】: %v", err)
 	}
-	if conf.Version != cfgYV {
-		gologger.Fatalf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
+	if conf.Version < cfgYV {
+		gologger.Fatal().Msgf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
+
+	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" && !options.IsApiMode {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
 	//初始化输出文件夹位置
-	if options.Output == "" && conf.Common.Output != "" {
-		options.Output = conf.Common.Output
-	} else if options.Output == "" {
+	if options.Output == "" {
 		options.Output = "outs"
 	}
 
-	//DEBUG模式设定
-	if options.IsDebug {
-		gologger.MaxLevel = gologger.Debug
-		gologger.Debugf("DEBUG 模式已开启\n")
-	}
-
-	if options.ClientMode != "" {
-		options.IsApiMode = true
-	}
-
-	// 是否为API模式 加入基本参数判断
-	if !options.IsApiMode && !options.IsWebMode {
-		if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" {
-			flag.PrintDefaults()
-			os.Exit(0)
-		}
-		if options.InputFile != "" {
-			if ok := utils.FileExists(options.InputFile); !ok {
-				gologger.Fatalf("没有输入文件 %s\n", options.InputFile)
-			}
-		}
-	} else {
-		options.IsShow = false
-		options.IsMergeOut = true
-		options.Deep = 1
+	if options.IsJsonOutput {
+		options.OutPutType = "json"
 	}
 
 	if options.Output == "!" {
-		gologger.Infof("当前模式不会导出文件信息！\n")
+		gologger.Info().Msgf("当前模式不会导出文件信息！\n")
+	}
+
+	if options.Proxy != "" {
+		gologger.Info().Msgf("代理已设定 ⌈%s⌋\n", options.Proxy)
+	}
+
+	if options.InputFile != "" {
+		if ok := utils.FileExists(options.InputFile); !ok {
+			gologger.Fatal().Msgf("未获取到文件⌈%s⌋请检查文件名是否正确\n", options.InputFile)
+		}
 	}
 
 	//数据源判断 默认为爱企查
 	if options.ScanType == "" && len(options.GetType) == 0 {
 		options.ScanType = "aqc"
 	}
+
 	//如果是指定全部数据
 	if options.ScanType == "all" {
-		options.GetType = []string{"aqc", "tyc"}
+		options.GetType = ENSTypes
 		options.IsMergeOut = true
 	} else if options.ScanType != "" {
 		options.GetType = strings.Split(options.ScanType, ",")
 	}
+
 	options.GetType = utils.SetStr(options.GetType)
 	var tmp []string
 	for _, v := range options.GetType {
 		if _, ok := ScanTypeKeys[v]; !ok {
-			gologger.Errorf("没有这个%s查询方式\n支持列表\n%s", v, ScanTypeKeys)
+			gologger.Error().Msgf("没有这个%s查询方式\n支持列表\n%s", v, ScanTypeKeys)
 		} else {
 			tmp = append(tmp, v)
 		}
 	}
 	options.GetType = tmp
 
-	//判断是否添加墨子任务
-	if options.IsBiuCreate {
-		if conf.Biu.Api == "" || conf.Biu.Key == "" {
-			gologger.Fatalf("没有配置 墨子 API地址与Api key （请前往个人设置->安全设置中获取Api Key） \n")
-		}
-	}
-
-	if len(conf.Biu.Tags) == 0 {
-		conf.Biu.Tags = []string{"ENScan"}
-	}
-
 	// 判断获取数据字段信息
 	options.GetField = utils.SetStr(options.GetField)
-	if options.GetFlags == "" && len(conf.Common.Field) == 0 {
-		if len(options.GetField) == 0 {
-			options.GetField = DefaultInfos
-		}
+	if options.GetFlags == "" && len(options.GetField) == 0 {
+		options.GetField = DefaultInfos
 	} else if options.GetFlags == "all" {
 		options.GetField = DefaultAllInfos
-	} else {
-		if len(conf.Common.Field) > 0 {
-			options.GetField = conf.Common.Field
-		}
-		if options.GetFlags != "" {
-			options.GetField = strings.Split(options.GetFlags, ",")
-			if len(options.GetField) <= 0 {
-				gologger.Fatalf("没有获取到字段信息 \n" + options.GetFlags)
-			}
-
+	} else if options.GetFlags != "" {
+		options.GetField = strings.Split(options.GetFlags, ",")
+		if len(options.GetField) <= 0 {
+			gologger.Fatal().Msgf("没有获取字段信息！\n" + options.GetFlags)
 		}
 	}
+
+	if options.UPOutFile != "" && len(options.GetField) > 1 {
+		gologger.Fatal().Msgf("自更新导出仅支持输出一个参数！⌈%s⌋", options.GetField)
+	}
+
+	// 是否深度获取分支机构
+	if options.IsSearchBranch {
+		options.IsGetBranch = true
+	}
+
 	//是否获取分支机构
 	if options.IsGetBranch {
 		options.GetField = append(options.GetField, "branch")
@@ -143,7 +136,9 @@ func Parse(options *ENOptions) {
 	if options.InvestNum != 0 {
 		options.GetField = append(options.GetField, "invest")
 		options.GetField = append(options.GetField, "partner")
+		gologger.Info().Msgf("获取投资信息，将会获取⌈%d⌋级子公司", options.Deep)
 	}
+	// 控股信息（大部分需要VIP）
 	if options.IsHold {
 		options.GetField = append(options.GetField, "holds")
 	}
@@ -151,36 +146,11 @@ func Parse(options *ENOptions) {
 		options.GetField = append(options.GetField, "supplier")
 	}
 	options.GetField = utils.SetStr(options.GetField)
-	// 判断是否在给定范围内，防止产生入库问题
-	if options.IsApiMode {
-		//var tmps []string
-		//for _, v := range options.GetField {
-		//	if _, ok := outputfile.ENSMapLN[v]; ok {
-		//		tmps = append(tmps, v)
-		//	} else {
-		//		gologger.Debugf("%s不在范围内\n", v)
-		//	}
-		//}
-		//options.GetType = tmps
-	}
 
-	if options.IsMerge == true {
-		gologger.Infof("====已强制取消合并导出！====\n")
-		options.IsMergeOut = false
+	if options.IsNoMerge {
+		gologger.Info().Msgf("批量查询文件将单独导出！\n")
 	}
-
+	options.IsMergeOut = !options.IsNoMerge
 	options.GetField = utils.SetStr(options.GetField)
-
 	options.ENConfig = conf
-	//获取邮箱懒得写了就这样直接合并吧（
-	if options.IsEmailPro {
-		gologger.Infof("由于作者太懒，需开启合并后才能查询邮箱\n")
-
-		if options.ENConfig.Cookies.Veryvp == "" {
-			gologger.Fatalf("错误，Veryvp COOKIE为空\n")
-		}
-		time.Sleep(3 * time.Second)
-		options.IsMergeOut = true
-	}
-
 }

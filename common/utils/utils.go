@@ -6,6 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/olekukonko/tablewriter"
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common/gologger"
 	"math"
 	"math/big"
 	"os"
@@ -13,8 +16,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
 // Md5 MD5加密
@@ -95,12 +96,12 @@ func DelInList(target string, list []string) []string {
 	return result
 }
 
-func ReadFile(filename string) []string {
+func ReadFileOutLine(filename string) []string {
 	var result []string
 	if FileExists(filename) {
 		f, err := os.Open(filename)
 		if err != nil {
-			gologger.Fatalf("Read fail: %v\n", err)
+			gologger.Fatal().Msgf("read fail", err)
 		}
 		fileScanner := bufio.NewScanner(f)
 		// read line by line
@@ -109,12 +110,11 @@ func ReadFile(filename string) []string {
 		}
 		// handle first encountered error while reading
 		if err := fileScanner.Err(); err != nil {
-			gologger.Fatalf("Error while reading file: %s\n", err)
+			gologger.Fatal().Msgf("Error while reading file: %s\n", err)
 		}
 		_ = f.Close()
 	}
 	result = SetStr(result)
-	gologger.Infof("读取到 %d 条信息（已去重）\n", len(result))
 	return result
 }
 
@@ -140,13 +140,12 @@ func CheckPid(pid string) (res string) {
 		res = "tyc"
 	} else if len(pid) == 33 || len(pid) == 34 {
 		if pid[0] == 'p' {
-			gologger.Errorf("无法查询法人信息\n")
+			gologger.Error().Msgf("无法查询法人信息\n")
 			res = ""
-		} else {
-			res = "xlb"
 		}
+		res = "xlb"
 	} else {
-		gologger.Errorf("pid长度%d不正确，pid: %s", len(pid), pid)
+		gologger.Error().Msgf("pid长度%d不正确，pid: %s\n", len(pid), pid)
 		return ""
 	}
 	return res
@@ -161,7 +160,7 @@ func FormatInvest(scale string) float64 {
 
 	num, err := strconv.ParseFloat(scale, 64)
 	if err != nil {
-		gologger.Errorf("转换失败：%s\n", err)
+		gologger.Error().Msgf("转换失败：%s\n", err)
 		return -1
 	}
 	return num
@@ -195,4 +194,33 @@ func VerifyEmailFormat(email string) bool {
 	pattern := `\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*` //匹配电子邮箱
 	reg := regexp.MustCompile(pattern)
 	return reg.MatchString(email)
+}
+
+// TBS 展示表格
+func TBS(h []string, ep []string, name string, data []gjson.Result) {
+	gologger.Info().Msgf(name)
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(h)
+	for _, v := range data {
+		var tmp []string
+		for _, r := range gjson.GetMany(v.String(), ep...) {
+			rs := r.String()
+			if len([]rune(rs)) > 30 {
+				rs = string([]rune(rs)[:30])
+			}
+			tmp = append(tmp, rs)
+		}
+		table.Append(tmp)
+	}
+	table.Render()
+}
+
+func MergeMap(s map[string][]map[string]string, list map[string][]map[string]string) {
+	for k, v := range s {
+		if l, ok := list[k]; ok {
+			list[k] = append(l, v...)
+		} else {
+			list[k] = v
+		}
+	}
 }

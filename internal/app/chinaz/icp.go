@@ -2,6 +2,12 @@ package chinaz
 
 import (
 	"crypto/tls"
+	"github.com/go-resty/resty/v2"
+	"github.com/olekukonko/tablewriter"
+	"github.com/robertkrimen/otto"
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/gologger"
 	"net/http"
 	"net/url"
 	"os"
@@ -9,29 +15,21 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/go-resty/resty/v2"
-	"github.com/olekukonko/tablewriter"
-	"github.com/robertkrimen/otto"
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/outputfile"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
 )
 
-func GetEnInfoByPid(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
+func GetEnInfoByPid(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*common.ENSMap) {
 	ensInfos = &common.EnInfos{}
 	ensInfos.Infos = make(map[string][]gjson.Result)
-	ensOutMap = make(map[string]*outputfile.ENSMap)
+	ensOutMap = make(map[string]*common.ENSMap)
 	field := []string{"webName", "host", "host", "permit", "owner", "inFrom"}
 	keyWord := []string{"网站名称", "网址", "域名", "网站备案/许可证号", "公司名称", "数据关联"}
-	ensOutMap["icp"] = &outputfile.ENSMap{Name: "icp", Field: field, KeyWord: keyWord}
-	gologger.Infof("ChinaZ API 查询 %s\n", options.KeyWord)
+	ensOutMap["icp"] = &common.ENSMap{Name: "icp", Field: field, KeyWord: keyWord}
+	gologger.Info().Msgf("ChinaZ API 查询 %s\n", options.KeyWord)
 	enRes := getReq("https://icp.chinaz.com/"+url.QueryEscape(options.KeyWord), map[string]string{"kw": ""}, options)
 	re := regexp.MustCompile(`var enkey = '(.+?)'`)
 	rr := re.FindStringSubmatch(enRes)
 	if len(rr) == 0 {
-		gologger.Errorf("ChinaZ %s 签名计算失败\n", options.KeyWord)
+		gologger.Error().Msgf("ChinaZ %s 签名计算失败\n", options.KeyWord)
 		return
 	}
 	rSing := hSing(options.KeyWord, rr[1])
@@ -53,7 +51,7 @@ func GetEnInfoByPid(options *common.ENOptions) (ensInfos *common.EnInfos, ensOut
 	if pageCount > 20 {
 		for i := 2; int(pageCount/20) >= i-1; i++ {
 			data["pageNo"] = strconv.Itoa(i)
-			gologger.Infof("爬取中【%d/%d】\n", i, int(pageCount/20))
+			gologger.Info().Msgf("爬取中【%d/%d】\n", i, int(pageCount/20))
 			ress := getReq("https://icp.chinaz.com/Home/PageData", data, options)
 			resList = append(resList, gjson.Get(ress, "data").Array()...)
 		}
@@ -61,7 +59,7 @@ func GetEnInfoByPid(options *common.ENOptions) (ensInfos *common.EnInfos, ensOut
 
 	ensInfos.Infos["icp"] = resList
 	ensInfos.Name = options.KeyWord
-	gologger.Infof("ChinaZ 查询到 %d 条数据\n", len(resList))
+	gologger.Info().Msgf("ChinaZ 查询到 %d 条数据\n", len(resList))
 	if options.IsShow {
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader(keyWord)
@@ -109,7 +107,7 @@ func getReq(url string, data map[string]string, options *common.ENOptions) strin
 	clientR.URL = url
 	resp, err := clientR.Send()
 	if err != nil {
-		gologger.Errorf("【ChinaZ】请求发生错误，%s 5秒后重试\n%s\n", url, err)
+		gologger.Error().Msgf("【ChinaZ】请求发生错误，%s 5秒后重试\n%s\n", url, err)
 		time.Sleep(5 * time.Second)
 		return getReq(url, data, options)
 	}
@@ -117,25 +115,29 @@ func getReq(url string, data map[string]string, options *common.ENOptions) strin
 		if !strings.Contains(string(resp.Body()), "会员登录 - 企查查") {
 			return string(resp.Body())
 		} else {
-			gologger.Errorf("【ChinaZ】需要登陆操作\n%s\n", err)
+			gologger.Error().Msgf("【ChinaZ】需要登陆操作\n%s\n", err)
 			return ""
 		}
 
 	} else if resp.StatusCode() == 403 {
-		gologger.Errorf("【ChinaZ】ip被禁止访问网站，请更换ip\n")
+		gologger.Error().Msgf("【ChinaZ】ip被禁止访问网站，请更换ip\n")
 	} else if resp.StatusCode() == 401 {
-		gologger.Errorf("【ChinaZ】Cookie有问题或过期，请重新获取\n")
+		gologger.Error().Msgf("【ChinaZ】Cookie有问题或过期，请重新获取\n")
 	} else if resp.StatusCode() == 301 {
-		gologger.Errorf("【ChinaZ】需要更新Cookie\n")
+		gologger.Error().Msgf("【ChinaZ】需要更新Cookie\n")
+	} else if resp.StatusCode() == 412 {
+		gologger.Error().Msgf("【ChinaZ】需要机器验证，请前往打开网站滑动验证，10秒后将会重试\n")
+		time.Sleep(10 * time.Second)
+		return getReq(url, data, options)
 	} else if resp.StatusCode() == 404 {
-		gologger.Errorf("【ChinaZ】请求错误 404 %s\n", url)
+		gologger.Error().Msgf("【ChinaZ】请求错误 404 %s\n", url)
 	} else {
-		gologger.Errorf("【ChinaZ】未知错误 %d\n", resp.StatusCode())
+		gologger.Error().Msgf("【ChinaZ】未知错误 %s\n", resp.StatusCode())
 		return ""
 	}
 
 	if strings.Contains(string(resp.Body()), "使用该功能需要用户登录") {
-		gologger.Errorf("【ChinaZ】Cookie有问题或过期，请重新获取\n")
+		gologger.Error().Msgf("【ChinaZ】Cookie有问题或过期，请重新获取\n")
 	}
 	return ""
 }
@@ -1511,13 +1513,13 @@ function getSing(keyword, enKey) {
 }
 `)
 	if err != nil {
-		gologger.Errorf(err.Error())
+		gologger.Error().Msgf(err.Error())
 		return nil
 	}
 	call, err := vm.Call("getSing", nil, keyword, enKey)
 
 	if err != nil {
-		gologger.Errorf(err.Error())
+		gologger.Error().Msgf(err.Error())
 		return nil
 	}
 	res := call.Object()

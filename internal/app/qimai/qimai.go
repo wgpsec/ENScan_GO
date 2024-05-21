@@ -5,20 +5,19 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/outputfile"
-	"github.com/wgpsec/ENScan/common/utils/gologger"
+	"github.com/wgpsec/ENScan/common/gologger"
 	"strconv"
 )
 
-func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*outputfile.ENSMap) {
+func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[string]*common.ENSMap) {
 	ensInfos = &common.EnInfos{}
 	ensInfos.Infos = make(map[string][]gjson.Result)
-	ensOutMap = make(map[string]*outputfile.ENSMap)
+	ensOutMap = make(map[string]*common.ENSMap)
 	ensInfos.Name = options.KeyWord
 	params := map[string]string{
 		"page":   "1",
 		"search": options.KeyWord,
-		"market": "1", //默认用360
+		"market": "1",
 	}
 	res := gjson.Parse(GetReq("search/android", params, options)).Get("appList").Array()
 	if res[0].Get("company.id").Int() != 0 {
@@ -26,13 +25,13 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 		ensInfos.Infos = GetInfoByCompanyId(res[0].Get("company.id").Int(), options)
 	}
 	for k, v := range getENMap() {
-		ensOutMap[k] = &outputfile.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
+		ensOutMap[k] = &common.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
 	}
 	return ensInfos, ensOutMap
 }
 
 func GetInfoByCompanyId(companyId int64, options *common.ENOptions) (data map[string][]gjson.Result) {
-	gologger.Infof("GetInfoByCompanyId: %d\n", companyId)
+	gologger.Info().Msgf("GetInfoByCompanyId: %d\n", companyId)
 	data = map[string][]gjson.Result{}
 	ensMap := getENMap()
 	params := map[string]string{
@@ -42,7 +41,7 @@ func GetInfoByCompanyId(companyId int64, options *common.ENOptions) (data map[st
 	//gjson.GetMany(gjson.Get(GetReq(ensMap[searchInfo].api, params, options), "data").Raw, ensMap[searchInfo].field...)
 	r, err := sjson.Set(gjson.Get(GetReq(ensMap[searchInfo].api, params, options), "data").Raw, "id", companyId)
 	if err != nil {
-		gologger.Errorf("Set pid error: %s", err.Error())
+		gologger.Error().Msgf("Set pid error: %s", err.Error())
 	}
 	rs := gjson.Parse(r)
 	data[searchInfo] = append(data[searchInfo], rs)
@@ -64,7 +63,7 @@ func GetInfoByCompanyId(companyId int64, options *common.ENOptions) (data map[st
 		}
 		tdata = append(tdata, str)
 	}
-	common.TableShow(ensMap[searchInfo].keyWord, tdata, options)
+	//common.TableShow(ensMap[searchInfo].keyWord, tdata, options)
 	return data
 }
 
@@ -89,17 +88,17 @@ func getInfoList(types string, params map[string]string, options *common.ENOptio
 			return listData
 		} else {
 			for i := 2; i <= int(data.Get(getPage).Int()); i++ {
-				gologger.Infof("getInfoList: %s %d\n", types, i)
+				gologger.Info().Msgf("getInfoList: %s %d\n", types, i)
 				params["page"] = fmt.Sprintf("%d", i)
 				listData = append(listData, gjson.Parse(GetReq(types, params, options)).Get("data."+getPath).Array()...)
 			}
 		}
 		if len(listData) == 0 {
-			gologger.Errorf("没有数据")
+			gologger.Error().Msgf("没有数据")
 		}
 	} else {
-		gologger.Errorf("获取数据失败,请检查是否登陆\n")
-		gologger.Debugf(data.Raw + "\n")
+		gologger.Error().Msgf("获取数据失败,请检查是否登陆\n")
+		gologger.Debug().Msgf("%s\n", data.Raw)
 	}
 	return listData
 }
