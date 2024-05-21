@@ -60,7 +60,7 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 		}
 
 		if sk == "invest" {
-			var iEnData [][]gjson.Result
+			iEnData := make([][]gjson.Result, options.Deep)
 			iEnData = append(iEnData, make([]gjson.Result, 0))
 			// 投资信息赋值
 			iEnData[0] = enInfo[sk]
@@ -74,7 +74,7 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 					gologger.Debug().Str("PID", tPid).Str("PID NAME", pidName).Msgf("查询PID")
 					// 计算投资比例判断是否符合
 					investNum := utils.FormatInvest(r.Get(scaleName).String())
-					if investNum <= options.InvestNum {
+					if investNum < options.InvestNum {
 						continue
 					}
 					association = fmt.Sprintf("%s %d级 投资 %.2f", enName, i, investNum)

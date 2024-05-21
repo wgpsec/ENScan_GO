@@ -46,7 +46,7 @@ func (h *AQC) GetENMap() map[string]*common.EnsGo {
 }
 
 func (h *AQC) GetEnsD() common.ENsD {
-	ensD := common.ENsD{Name: h.Options.KeyWord, Pid: h.Options.CompanyID}
+	ensD := common.ENsD{Name: h.Options.KeyWord, Pid: h.Options.CompanyID, Op: h.Options}
 	return ensD
 }
 

@@ -73,7 +73,7 @@ type ENsD struct {
 	KeyWord string // Keyword of Search
 	Name    string // 企业
 	Pid     string // PID
-	Op      ENOptions
+	Op      *ENOptions
 }
 
 func (h *ENOptions) GetDelayRTime() int64 {
