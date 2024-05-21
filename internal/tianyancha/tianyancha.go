@@ -42,7 +42,7 @@ func (h *TYC) AdvanceFilter() ([]gjson.Result, error) {
 
 	if len(enList) == 0 {
 		gologger.Debug().Str("【TYC】查询请求", name).Msg(content)
-		return enList, fmt.Errorf("【TYC】没有查询到关键词 %s", name)
+		return enList, fmt.Errorf("【TYC】没有查询到关键词 ⌈%s⌋", name)
 	}
 	return enList, nil
 }
@@ -83,7 +83,7 @@ func getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOp
 	urls := "https://capi.tianyancha.com/" + types + "?_=" + strconv.Itoa(int(time.Now().Unix()))
 
 	if data == "" {
-		urls += "&pageSize=100&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=1" + s.GsData
+		urls += "&pageSize=20&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=1" + s.GsData
 	} else {
 		data, _ = sjson.Set(data, "gid", pid)
 		data, _ = sjson.Set(data, "pageSize", 100)

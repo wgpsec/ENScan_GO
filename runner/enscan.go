@@ -18,7 +18,7 @@ func AdvanceFilter(job _interface.ENScan) string {
 	} else {
 		gologger.Info().Msgf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", job.GetEnsD().Name, len(enList))
 		//展示结果
-		utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), enList)
+		utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), "企业信息", enList)
 		pid := enList[0].Get(enMap.Field[10]).String()
 		gologger.Debug().Str("PID", pid).Msgf("搜索")
 		return pid
@@ -143,7 +143,7 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 			enData[sk] = append(enData[sk], gs)
 		}
 		// 展示数据
-		utils.TBS(s.KeyWord, s.Field, listData)
+		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
 	}
 	return enData
 }

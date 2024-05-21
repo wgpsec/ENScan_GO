@@ -197,13 +197,18 @@ func VerifyEmailFormat(email string) bool {
 }
 
 // TBS 展示表格
-func TBS(h []string, ep []string, data []gjson.Result) {
+func TBS(h []string, ep []string, name string, data []gjson.Result) {
+	gologger.Info().Msgf(name)
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(h)
 	for _, v := range data {
 		var tmp []string
 		for _, r := range gjson.GetMany(v.String(), ep...) {
-			tmp = append(tmp, r.String())
+			rs := r.String()
+			if len([]rune(rs)) > 30 {
+				rs = string([]rune(rs)[:30])
+			}
+			tmp = append(tmp, rs)
 		}
 		table.Append(tmp)
 	}
