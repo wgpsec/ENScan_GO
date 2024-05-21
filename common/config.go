@@ -47,6 +47,7 @@ type ENOptions struct {
 	IsMergeOut     bool   //聚合
 	IsNoMerge      bool   //聚合
 	OutPutType     string // 导出文件类型
+	IsApiMode      bool
 	ENConfig       *ENConfig
 }
 

@@ -11,32 +11,33 @@ import (
 )
 
 func main() {
+	var enOptions common.ENOptions
+	common.Flag(&enOptions)
+	common.Parse(&enOptions)
 	var quitSig = make(chan os.Signal, 1)
 	signal.Notify(quitSig, os.Interrupt, os.Kill)
 	go func() {
 		for {
 			select {
 			case <-quitSig:
-				gologger.Error().Msgf("任务未完成退出，自动保存过程文件！")
-				enDataList := make(map[string][]map[string]string)
-				close(runner.EnCh)
-				if len(runner.EnCh) > 0 {
-					for ch := range runner.EnCh {
-						utils.MergeMap(ch, enDataList)
-					}
-					err := common.OutFileByEnInfo(enDataList, "意外退出保存文件", "xlsx", "outs")
-					if err != nil {
-						gologger.Error().Msgf(err.Error())
+				if !enOptions.IsApiMode {
+					gologger.Error().Msgf("任务未完成退出，自动保存过程文件！")
+					enDataList := make(map[string][]map[string]string)
+					close(runner.EnCh)
+					if len(runner.EnCh) > 0 {
+						for ch := range runner.EnCh {
+							utils.MergeMap(ch, enDataList)
+						}
+						err := common.OutFileByEnInfo(enDataList, "意外退出保存文件", "xlsx", "outs")
+						if err != nil {
+							gologger.Error().Msgf(err.Error())
+						}
 					}
 				}
 				log.Fatal("exit.by.signal")
 			}
 		}
 	}()
-
-	var enOptions common.ENOptions
-	common.Flag(&enOptions)
-	common.Parse(&enOptions)
 	runner.RunEnumeration(&enOptions)
 
 }

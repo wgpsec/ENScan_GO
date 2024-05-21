@@ -39,6 +39,10 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 	var ds []string
 	for _, s := range searchList {
 		if utils.IsInList(s, common.DeepSearch) {
+			// 跳过分支机构搜索
+			if s == "branch" && !options.IsSearchBranch {
+				continue
+			}
 			ds = append(ds, s)
 		}
 	}
@@ -52,10 +56,6 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 		association := enMap[sk].Name
 		if len(enInfo[sk]) == 0 {
 			gologger.Info().Str("type", sk).Msgf("【x】%s 数量为空，跳过搜索\n", association)
-			continue
-		}
-		// 跳过分支机构搜索
-		if sk == "branch" && !options.IsSearchBranch {
 			continue
 		}
 

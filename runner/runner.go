@@ -79,6 +79,8 @@ func RunEnumeration(options *common.ENOptions) {
 			gologger.Error().Msgf(err.Error())
 		}
 
+	} else if options.IsApiMode {
+		api(options)
 	} else {
 		RunJob(options)
 	}
@@ -129,7 +131,7 @@ func RunJob(options *common.ENOptions) map[string][]map[string]string {
 	}
 
 	wg.Wait()
-	if options.IsMergeOut && options.InputFile == "" {
+	if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode {
 		err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
 		if err != nil {
 			gologger.Error().Msgf(err.Error())

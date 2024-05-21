@@ -2,6 +2,7 @@ package common
 
 import (
 	"flag"
+	"github.com/gin-gonic/gin"
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
@@ -16,6 +17,7 @@ func Parse(options *ENOptions) {
 	//DEBUG模式设定
 	if options.IsDebug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
+		gin.SetMode(gin.DebugMode)
 		gologger.Debug().Msgf("DEBUG 模式已开启\n")
 	}
 
@@ -52,7 +54,7 @@ func Parse(options *ENOptions) {
 		gologger.Fatal().Msgf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
 
-	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" {
+	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" && !options.IsApiMode {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
