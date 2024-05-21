@@ -52,6 +52,7 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 	for _, sk := range ds {
 		enSk := enMap[sk].Field
 		pidName := enSk[len(enSk)-2]
+		etNameJ := enSk[0]
 		scaleName := enSk[3]
 		association := enMap[sk].Name
 		if len(enInfo[sk]) == 0 {
@@ -71,13 +72,14 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 				var nextInK []gjson.Result
 				for _, r := range iEnData[i] {
 					tPid := r.Get(pidName).String()
-					gologger.Debug().Str("PID", tPid).Str("PID NAME", pidName).Msgf("查询PID")
+					tName := r.Get(etNameJ).String()
+					gologger.Debug().Str("PID", tPid).Str("Name", tName).Str("PID NAME", pidName).Msgf("查询PID")
 					// 计算投资比例判断是否符合
 					investNum := utils.FormatInvest(r.Get(scaleName).String())
 					if investNum < options.InvestNum {
 						continue
 					}
-					association = fmt.Sprintf("%s %d级 投资 %.2f", enName, i+1, investNum)
+					association = fmt.Sprintf("%s ⌈%d⌋级投资⌈%.2f%%⌋-%s", tName, i+1, investNum, enName)
 					gologger.Info().Msgf("%s", association)
 					dEnData := getCompanyInfoById(tPid, association, searchList, job)
 					// 保存当前数据
