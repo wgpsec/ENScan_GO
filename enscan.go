@@ -21,7 +21,7 @@ func main() {
 			select {
 			case <-quitSig:
 				if !enOptions.IsApiMode {
-					gologger.Error().Msgf("任务未完成退出，自动保存过程文件！")
+					gologger.Error().Msgf("任务未完成退出，将自动保存过程文件！")
 					enDataList := make(map[string][]map[string]string)
 					close(runner.EnCh)
 					if len(runner.EnCh) > 0 {
