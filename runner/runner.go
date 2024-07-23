@@ -74,9 +74,11 @@ func RunEnumeration(options *common.ENOptions) {
 			}
 		}()
 		wg.Wait()
-		err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
-		if err != nil {
-			gologger.Error().Msgf(err.Error())
+		if !options.IsNoMerge {
+			err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
+			if err != nil {
+				gologger.Error().Msgf(err.Error())
+			}
 		}
 
 	} else if options.IsApiMode {
