@@ -1,6 +1,7 @@
 package aiqicha
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/tidwall/gjson"
@@ -97,6 +98,7 @@ func getENMap() map[string]*common.EnsGo {
 
 func GetReq(url string, options *common.ENOptions) string {
 	client := resty.New()
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
 	if options.Proxy != "" {
 		client.SetProxy(options.Proxy)

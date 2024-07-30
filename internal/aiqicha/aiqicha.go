@@ -21,23 +21,24 @@ type AQC struct {
 // AdvanceFilter 筛选过滤
 func (h *AQC) AdvanceFilter() ([]gjson.Result, error) {
 	name := h.Options.KeyWord
-	//urls := "https://aiqicha.baidu.com/s?q=" + urlTool.QueryEscape(name) + "&t=0"
-	urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + urlTool.QueryEscape(name) + "&p=1&s=10&f={}"
+	urls := "https://aiqicha.baidu.com/s?q=" + urlTool.QueryEscape(name) + "&t=0"
+	//urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + urlTool.QueryEscape(name) + "&p=1&s=10&f={}"
 	content := GetReq(urls, h.Options)
 	content = strings.ReplaceAll(content, "<em>", "⌈")
 	content = strings.ReplaceAll(content, "<\\/em>", "⌋")
-	//rq := pageParseJson(content)
-	enList := gjson.Get(content, "data.resultList").Array()
-	ddw := gjson.Get(content, "ddw").Int()
+	rq, _ := pageParseJson(content)
+	enList := rq.Get("resultList").Array()
+	//enList := gjson.Get(content, "data.resultList").Array()
 	if len(enList) == 0 {
 		gologger.Debug().Str("查询请求", name).Msg(content)
 		return enList, fmt.Errorf("【AQC】没有查询到关键词 ⌈%s⌋", name)
 	}
 	// advanceFilterAjax 接口特殊处理
-	for i, v := range enList {
-		s, _ := sjson.Set(v.Raw, "pid", transformNumber(v.Get("pid").String(), ddw))
-		enList[i] = gjson.Parse(s)
-	}
+	//ddw := gjson.Get(content, "ddw").Int()
+	//for i, v := range enList {
+	//	s, _ := sjson.Set(v.Raw, "pid", transformNumber(v.Get("pid").String(), ddw))
+	//	enList[i] = gjson.Parse(s)
+	//}
 	return enList, nil
 }
 
