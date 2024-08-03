@@ -4,12 +4,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/antchfx/htmlquery"
-	"github.com/go-resty/resty/v2"
+	"github.com/imroc/req/v3"
 	"github.com/robertkrimen/otto"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"golang.org/x/net/html"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -124,85 +123,88 @@ func getENMap() map[string]*common.EnsGo {
 }
 
 func GetReq(url string, data string, options *common.ENOptions) string {
-	client := resty.New()
+	client := req.C()
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
+	client.SetTLSFingerprintChrome()
 	if options.Proxy != "" {
-		client.SetProxy(options.Proxy)
+		client.SetProxyURL(options.Proxy)
 	}
-	client.Header = http.Header{
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"},
-		"Accept":     {"text/html,application/json,application/xhtml+xml, image/jxr, */*"},
-		"Version":    {"TYC-Web"},
-		"Cookie":     {options.ENConfig.Cookies.Tianyancha},
-		"Origin":     {"https://www.tianyancha.com"},
-		"Referer":    {"https://www.tianyancha.com/"},
-	}
+	client.SetCommonHeaders(map[string]string{
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.60 Safari/537.36",
+		"Accept":     "text/html,application/json,application/xhtml+xml, image/jxr, */*",
+		"Version":    "TYC-Web",
+		"Cookie":     options.ENConfig.Cookies.Tianyancha,
+		"Origin":     "https://www.tianyancha.com",
+		"Referer":    "https://www.tianyancha.com/",
+	})
+	clientR := client.R()
 
 	if strings.Contains(url, "capi.tianyancha.com") {
-		client.Header.Set("Content-Type", "application/json")
-		client.Header.Del("Cookie")
-		client.Header.Set("X-Tycid", options.ENConfig.Cookies.Tycid)
+		clientR.SetHeader("Content-Type", "application/json")
+		//client.Header.Del("Cookie")
+		clientR.SetHeader("X-Tycid", options.ENConfig.Cookies.Tycid)
 		//client.Header.Set("X-Auth-Token", "")
 	}
 	//加延迟1S
 	//强制延时1s
 	time.Sleep(1 * time.Second)
 	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
-	clientR := client.R()
+
+	method := "GET"
 	if data == "" {
-		clientR.Method = "GET"
+		method = "GET"
 	} else {
-		clientR.Method = "POST"
+		method = "POST"
 		clientR.SetBody(data)
 	}
-	clientR.URL = url
-	resp, err := clientR.Send()
+
+	resp, err := clientR.Send(method, url)
 
 	//暂时没法直接算出Cookie信息等之后再看看吧
-	if options.ENConfig.Cookies.Tianyancha == "" {
-		re := regexp.MustCompile(`arg1='([\w\s]+)';`)
-		rr := re.FindAllStringSubmatch(string(resp.Body()), 1)
-		if len(rr) > 0 {
-			str := rr[0][1]
-			client.SetCookies(append(resp.Cookies(), &http.Cookie{Name: "acw_sc__v2", Value: str}))
-		}
-		gologger.Info().Msgf("【TYC】计算反爬获取Cookie成功 %s\n")
-		resp, _ = clientR.Send()
-	}
+	//if options.ENConfig.Cookies.Tianyancha == "" {
+	//	re := regexp.MustCompile(`arg1='([\w\s]+)';`)
+	//	rr := re.FindAllStringSubmatch(resp.String(), 1)
+	//	if len(rr) > 0 {
+	//		str := rr[0][1]
+	//		client.R().SetCookies(append(resp.Cookies(), &http.Cookie{Name: "acw_sc__v2", Value: str}))
+	//	}
+	//	gologger.Info().Msgf("【TYC】计算反爬获取Cookie成功 %s\n")
+	//	resp, _ = clientR.Send(method, url)
+	//}
 
 	if err != nil {
 		if options.Proxy != "" {
-			client.RemoveProxy()
+			client.SetProxy(nil)
 		}
 
 		gologger.Error().Msgf("【TYC】请求错误 %s 5秒后重试 【%s】\n", url, err)
 		if err.Error() == "unexpected EOF" {
-			UpCookie(string(resp.Body()), options)
+			UpCookie(resp.String(), options)
 
 		}
 		time.Sleep(5 * time.Second)
 		return GetReq(url, data, options)
 	}
-	if resp.StatusCode() == 200 {
-		return string(resp.Body())
-	} else if resp.StatusCode() == 403 {
+	if resp.StatusCode == 200 {
+		return resp.String()
+	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("【TYC】ip被禁止访问网站，请更换ip\n")
-	} else if resp.StatusCode() == 401 {
+	} else if resp.StatusCode == 401 {
 		gologger.Error().Msgf("【TYC】Cookie有问题或过期，请重新获取\n")
-	} else if resp.StatusCode() == 302 {
+	} else if resp.StatusCode == 302 {
 		gologger.Error().Msgf("【TYC】需要更新Cookie\n")
-	} else if resp.StatusCode() == 404 {
+	} else if resp.StatusCode == 404 {
 		gologger.Error().Msgf("【TYC】请求错误 404 %s \n", url)
-	} else if resp.StatusCode() == 429 {
+	} else if resp.StatusCode == 429 {
 		gologger.Error().Msgf("【TYC】429请求被拦截，清打开链接滑动验证码，程序将在10秒后重试 %s \n", url)
 		time.Sleep(10 * time.Second)
 		return GetReq(url, data, options)
 
 	} else {
-		gologger.Error().Msgf("【TYC】未知错误 %s\n", resp.StatusCode())
+		gologger.Error().Msgf("【TYC】未知错误 %s\n", resp.StatusCode)
 		gologger.Debug().Msgf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
-		gologger.Debug().Msgf("【TYC】\n%s\n", resp.Body())
+		gologger.Debug().Msgf("【TYC】\n%s\n", resp.String())
 	}
 	return ""
 }

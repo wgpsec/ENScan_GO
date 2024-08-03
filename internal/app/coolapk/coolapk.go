@@ -2,13 +2,12 @@ package coolapk
 
 import (
 	"encoding/base64"
-	"github.com/go-resty/resty/v2"
+	"github.com/imroc/req/v3"
 	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -25,7 +24,7 @@ func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[
 	ensOutMap = make(map[string]*common.ENSMap)
 	field := []string{"title", "catName", "apkversionname", "lastupdate", "shorttitle", "logo", "apkname", "", "", "inFrom"}
 	keyWord := []string{"名称", "分类", "当前版本", "更新时间", "简介", "logo", "Bundle ID", "链接", "market", "数据关联"}
-	ensOutMap["app"] = &common.ENSMap{Name: "app", Field: field, KeyWord: keyWord}
+	ensOutMap["app"] = &common.ENSMap{Name: "app", JField: field, KeyWord: keyWord}
 	developer := options.KeyWord
 	gologger.Info().Msgf("酷安API查询 %s\n", developer)
 	deviceId := "34de7eef-8400-3300-8922-a1a34e7b9b4f"
@@ -40,20 +39,20 @@ func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[
 		"&page=1&firstLaunch=0&installTime=" +
 		strconv.FormatInt(ctime, 10) +
 		"&lastItem=13988"
-	client := resty.New()
+	client := req.C()
 	//client.SetTimeout(common.RequestTimeOut)
-	client.Header = http.Header{
-		"X-App-Token":   {token},
-		"X-App-Version": {"10.5.3"},
-		"User-Agent":    {"Dalvik/2.1.0 (Linux; U; Android 6.0.1; Nexus 6P Build/MMB29M) (#Build; google; Nexus 6P; MMB29M; 6.0.1) +CoolMarket/10.5.3-2009271"},
-		"X-Api-Version": {"10"},
-		"X-App-Device":  {"QZDIzVHel5EI7UGbn92bnByOpV2dhVHSgszQyoTMzoDM2oTQCpDMwoDNyAyOsxWduByO2ADO4kjNxIDM2gjN3YDOgsDZiBTYykzYkZDNlBzY0ITZ"},
+	client.SetCommonHeaders(map[string]string{
+		"X-App-Token":   token,
+		"X-App-Version": "10.5.3",
+		"User-Agent":    "Dalvik/2.1.0 (Linux; U; Android 6.0.1; Nexus 6P Build/MMB29M) (#Build; google; Nexus 6P; MMB29M; 6.0.1) +CoolMarket/10.5.3-2009271",
+		"X-Api-Version": "10",
+		"X-App-Device":  "QZDIzVHel5EI7UGbn92bnByOpV2dhVHSgszQyoTMzoDM2oTQCpDMwoDNyAyOsxWduByO2ADO4kjNxIDM2gjN3YDOgsDZiBTYykzYkZDNlBzY0ITZ",
 		//"Accept-Encoding":  {"gzip"},
-		"X-Dark-Mode":      {"0"},
-		"X-Requested-With": {"XMLHttpRequest"},
-		"X-App-Code":       {"2009271"},
-		"X-App-Id":         {"com.coolapk.market"},
-	}
+		"X-Dark-Mode":      "0",
+		"X-Requested-With": "XMLHttpRequest",
+		"X-App-Code":       "2009271",
+		"X-App-Id":         "com.coolapk.market",
+	})
 
 	resp, err := client.R().Get(url)
 
@@ -61,7 +60,7 @@ func GetReq(options *common.ENOptions) (ensInfos *common.EnInfos, ensOutMap map[
 		gologger.Fatal().Msgf("coolapk 请求发生错误\n%s\n", err)
 	}
 
-	appList := gjson.Get(string(resp.Body()), "data").Array()
+	appList := gjson.Get(resp.String(), "data").Array()
 	ensInfos.Infos["app"] = appList
 	ensInfos.Name = options.KeyWord
 	gologger.Info().Msgf("酷安API 查询到 %d 条数据\n", len(appList))

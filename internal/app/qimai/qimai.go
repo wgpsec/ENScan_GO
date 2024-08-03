@@ -25,7 +25,7 @@ func GetInfoByKeyword(options *common.ENOptions) (ensInfos *common.EnInfos, ensO
 		ensInfos.Infos = GetInfoByCompanyId(res[0].Get("company.id").Int(), options)
 	}
 	for k, v := range getENMap() {
-		ensOutMap[k] = &common.ENSMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
+		ensOutMap[k] = &common.ENSMap{Name: v.name, JField: v.field, KeyWord: v.keyWord}
 	}
 	return ensInfos, ensOutMap
 }

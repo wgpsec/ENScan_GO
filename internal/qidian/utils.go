@@ -1,64 +1,64 @@
 package qidian
 
 import (
-	"github.com/go-resty/resty/v2"
+	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
-	"net/http"
 	"time"
 )
 
 func GetReq(url string, data string, options *common.ENOptions) string {
-	client := resty.New()
+	client := req.C()
 	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
 	if options.Proxy != "" {
-		client.SetProxy(options.Proxy)
+		client.SetProxyURL(options.Proxy)
 	}
 
 	if data == "" {
 		data = "{}"
 	}
 
-	client.Header = http.Header{
-		"User-Agent":   {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
-		"Accept":       {"text/html, application/xhtml+xml, image/jxr, */*"},
-		"Content-Type": {"application/json;charset=UTF-8"},
-		"Cookie":       {options.ENConfig.Cookies.Qidian},
-		"Referer":      {"https://www.dingtalk.com/"},
-	}
+	client.SetCommonHeaders(map[string]string{
+		"User-Agent":   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
+		"Accept":       "text/html, application/xhtml+xml, image/jxr, */*",
+		"Content-Type": "application/json;charset=UTF-8",
+		"Cookie":       options.ENConfig.Cookies.Qidian,
+		"Referer":      "https://www.dingtalk.com/",
+	})
 	//加入随机延时
 	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
 	clientR := client.R()
+	method := "GET"
 	if data == "{}" {
-		clientR.Method = "GET"
+		method = "GET"
 	} else {
-		clientR.Method = "POST"
+		method = "POST"
 		clientR.SetBody(data)
 	}
-	clientR.URL = url
-	resp, err := clientR.Send()
+
+	resp, err := clientR.Send(method, url)
 
 	if err != nil {
 		if options.Proxy != "" {
-			client.RemoveProxy()
+			client.SetProxy(nil)
 		}
 		gologger.Error().Msgf("【qidian】请求发生错误， %s 5秒后重试\n%s\n", url, err)
 		time.Sleep(5 * time.Second)
 		return GetReq(url, data, options)
 	}
-	if resp.StatusCode() == 200 {
-		return string(resp.Body())
-	} else if resp.StatusCode() == 403 {
+	if resp.StatusCode == 200 {
+		return resp.String()
+	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("【qidian】ip被禁止访问网站，请更换ip\n")
-	} else if resp.StatusCode() == 401 {
+	} else if resp.StatusCode == 401 {
 		gologger.Error().Msgf("【qidian】Cookie有问题或过期，请重新获取\n")
-	} else if resp.StatusCode() == 302 {
+	} else if resp.StatusCode == 302 {
 		gologger.Error().Msgf("【qidian】需要更新Cookie\n")
-	} else if resp.StatusCode() == 404 {
+	} else if resp.StatusCode == 404 {
 		gologger.Error().Msgf("【qidian】请求错误 404 %s \n", url)
 	} else {
-		gologger.Error().Msgf("【qidian】未知错误 %s\n", resp.StatusCode())
+		gologger.Error().Msgf("【qidian】未知错误 %s\n", resp.StatusCode)
 	}
 	return ""
 }

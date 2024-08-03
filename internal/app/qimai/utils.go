@@ -3,12 +3,11 @@ package qimai
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/go-resty/resty/v2"
+	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
-	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -79,21 +78,21 @@ func sign(params string, url string) string {
 }
 
 func GetReq(url string, params map[string]string, options *common.ENOptions) string {
-	client := resty.New()
+	client := req.C()
 	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
 	if options.Proxy != "" {
-		client.SetProxy(options.Proxy)
+		client.SetProxyURL(options.Proxy)
 	}
 	gologger.Debug().Msgf("[qimai] url: %s, params: %s\n", url, params)
 	cookie := options.ENConfig.Cookies.QiMai
 	cookie = strings.ReplaceAll(cookie, "syncd", "syncds")
 	cookie = cookie + ";synct=1690024926.196; syncd=-1652"
-	client.Header = http.Header{
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43"},
-		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},
-		"Cookie":     {cookie},
-		"Referer":    {"https://www.qimai.cn/"},
-	}
+	client.SetCommonHeaders(map[string]string{
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
+		"Accept":     "text/html, application/xhtml+xml, image/jxr, */*",
+		"Cookie":     cookie,
+		"Referer":    "https://www.qimai.cn/",
+	})
 	var par []string
 	params["analysis"] = ""
 	for _, v := range params {
@@ -108,24 +107,24 @@ func GetReq(url string, params map[string]string, options *common.ENOptions) str
 	gologger.Debug().Msgf("【qimai】%s\n", resp)
 	if err != nil {
 		if options.Proxy != "" {
-			client.RemoveProxy()
+			client.SetProxy(nil)
 		}
 		gologger.Error().Msgf("请求发生错误，5秒后重试\n%s\n", err)
 		time.Sleep(5 * time.Second)
 		return GetReq(url, params, options)
 	}
-	if resp.StatusCode() == 200 {
-		return string(resp.Body())
-	} else if resp.StatusCode() == 403 {
+	if resp.StatusCode == 200 {
+		return resp.String()
+	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("ip被禁止访问网站，请更换ip\n")
-	} else if resp.StatusCode() == 401 {
+	} else if resp.StatusCode == 401 {
 		gologger.Error().Msgf("Cookie有问题或过期，请重新获取\n")
-	} else if resp.StatusCode() == 302 {
+	} else if resp.StatusCode == 302 {
 		gologger.Error().Msgf("需要更新Cookie\n")
-	} else if resp.StatusCode() == 404 {
+	} else if resp.StatusCode == 404 {
 		gologger.Error().Msgf("目标不存在\n")
 	} else {
-		gologger.Error().Msgf("未知错误 %s\n", resp.StatusCode())
+		gologger.Error().Msgf("未知错误 %s\n", resp.StatusCode)
 	}
 	return ""
 }
