@@ -2,6 +2,8 @@ package runner
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
@@ -49,6 +51,10 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 	if len(ds) > 0 {
 		gologger.Info().Msgf("深度搜索列表：%v", ds)
 	}
+	var etNameFilter *regexp.Regexp
+	if options.BranchFilter != "" {
+		etNameFilter = regexp.MustCompile(options.BranchFilter)
+	}
 	for _, sk := range ds {
 		enSk := enMap[sk].Field
 		pidName := enSk[len(enSk)-2]
@@ -73,6 +79,10 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 				for _, r := range iEnData[i] {
 					tPid := r.Get(pidName).String()
 					tName := r.Get(etNameJ).String()
+					if etNameFilter != nil && etNameFilter.MatchString(tName) {
+						gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
+						continue
+					}
 					gologger.Debug().Str("PID", tPid).Str("Name", tName).Str("PID NAME", pidName).Msgf("查询PID")
 					// 计算投资比例判断是否符合
 					investNum := utils.FormatInvest(r.Get(scaleName).String())
@@ -100,6 +110,11 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 			for i, r := range enInfo[sk] {
 				gologger.Info().Msgf("[%d/%d]", i, enLen)
 				tPid := r.Get(pidName).String()
+				tName := r.Get(etNameJ).String()
+				if etNameFilter != nil && etNameFilter.MatchString(tName) {
+					gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
+					continue
+				}
 				dEnData := getCompanyInfoById(tPid, association, searchList, job)
 				// 把查询完的一个企业按类别存起来
 				for dk, dr := range dEnData {

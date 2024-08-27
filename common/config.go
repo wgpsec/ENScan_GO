@@ -49,6 +49,7 @@ type ENOptions struct {
 	OutPutType     string // 导出文件类型
 	IsApiMode      bool
 	ENConfig       *ENConfig
+	BranchFilter string
 }
 
 // EnsGo EnScan 接口请求通用格式接口

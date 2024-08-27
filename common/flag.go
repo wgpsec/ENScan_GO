@@ -41,6 +41,7 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsSearchBranch, "is-branch", false, "深度查询分支机构信息（数量巨大）")
 	flag.BoolVar(&Info.IsJsonOutput, "json", false, "json导出")
 	flag.StringVar(&Info.Output, "out-dir", "", "结果输出的文件夹位置(默认为outs)")
+	flag.StringVar(&Info.BranchFilter, "branch-filter", "", "提供一个正则表达式，名称匹配该正则的分支机构和子公司会被跳过")
 	flag.StringVar(&Info.UPOutFile, "out-update", "", "导出指定范围文件，自更新")
 	flag.StringVar(&Info.OutPutType, "out-type", "xlsx", "导出的文件后缀 默认xlsx")
 	flag.BoolVar(&Info.IsDebug, "debug", false, "是否显示debug详细信息")
