@@ -28,7 +28,7 @@ func main() {
 						for ch := range runner.EnCh {
 							utils.MergeMap(ch, enDataList)
 						}
-						err := common.OutFileByEnInfo(enDataList, "意外退出保存文件", "xlsx", "outs")
+						err := common.OutFileByEnInfo(enDataList, "进程退出保存文件", "xlsx", "outs")
 						if err != nil {
 							gologger.Error().Msgf(err.Error())
 						}
