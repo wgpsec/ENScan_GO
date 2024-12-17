@@ -105,10 +105,10 @@ Cookie信息请勿直接 `document.cookie`，可能因为http-only 选项无法�
 
 **组合筛选** 
 
-大于51%控股公司、供应商、分支机构，只要ICP备案信息，并且批量获取邮箱信息
+大于51%控股公司、供应商、分支机构，只要ICP备案信息
 
 ```
-./enscan -n 小米 -field icp --hold --supplier --branch --email 
+./enscan -n 小米 -field icp --hold --supplier --branch
 ```
 
 **使用不同渠道** 
