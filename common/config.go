@@ -49,7 +49,7 @@ type ENOptions struct {
 	OutPutType     string // 导出文件类型
 	IsApiMode      bool
 	ENConfig       *ENConfig
-	BranchFilter string
+	BranchFilter   string
 }
 
 // EnsGo EnScan 接口请求通用格式接口
@@ -67,6 +67,7 @@ type EnsGo struct {
 	GsData       string            // get请求需要加的特殊参数 TYC
 	Rf           string            // 返回数据关键词 TYC
 	DataModuleId int               // 企点获取数据ID点
+	AppParams    [2]string         // 插件需要获取的参数
 }
 
 // ENsD 通用返回内容格式
@@ -117,17 +118,19 @@ var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", 
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var DeepSearch = []string{"invest", "branch", "holds", "supplier"}
-var ENSTypes = []string{"aqc", "tyc"}
+var ENSTypes = []string{"aqc", "tyc", "kc", "miit"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",
 	"tyc":     "天眼查",
 	"xlb":     "小蓝本",
+	"kc":      "快查",
 	"all":     "全部查询",
 	"aldzs":   "阿拉丁",
 	"coolapk": "酷安市场",
 	"qimai":   "七麦数据",
 	"chinaz":  "站长之家",
+	"miit":    "miitICP",
 }
 
 // ENConfig YML配置文件，更改时注意变更 cfgYV 版本
@@ -135,30 +138,26 @@ type ENConfig struct {
 	Version float64 `yaml:"version"`
 	Cookies struct {
 		Aldzs      string `yaml:"aldzs"`
-		Xlb        string `yaml:"xlb"`
 		Aiqicha    string `yaml:"aiqicha"`
 		Qidian     string `yaml:"qidian"`
+		KuaiCha    string `yaml:"kuaicha"`
 		Tianyancha string `yaml:"tianyancha"`
 		Tycid      string `yaml:"tycid"`
-		Qcc        string `yaml:"qcc"`
-		QccTid     string `yaml:"qcctid"`
 		QiMai      string `yaml:"qimai"`
-		ChinaZ     string `yaml:"chinaz"`
+	}
+	App struct {
+		MiitApi string `yaml:"miit_api"`
 	}
 }
 
 var cfgYName = filepath.Join(utils.GetConfigPath(), "config.yaml")
 var cfgYV = 0.4
 var configYaml = `version: 0.4
+app:
+  miit_api: ''
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
   tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
-  qcc: ''               # 企查查   Cookie
-  qcctid: '' 			# 企查查   TID console.log(window.tid)
-  aldzs: ''             # 阿拉丁   Cookie
-  xlb: ''               # 小蓝本   Token
   qimai: ''             # 七麦数据  Cookie
-  chinaz: ''			# 站长之家  Cookie
-  veryvp: '' 			# veryvp  Cookie
 `

@@ -29,6 +29,7 @@ func (h *AQC) AdvanceFilter() ([]gjson.Result, error) {
 	rq, _ := pageParseJson(content)
 	enList := rq.Get("resultList").Array()
 	//enList := gjson.Get(content, "data.resultList").Array()
+
 	if len(enList) == 0 {
 		gologger.Debug().Str("查询请求", name).Msg(content)
 		return enList, fmt.Errorf("【AQC】没有查询到关键词 ⌈%s⌋", name)
@@ -127,7 +128,12 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 			for _, y := range listData {
 				for _, o := range y.Get("domain").Array() {
 					valueTmp, _ := sjson.Set(y.Raw, "domain", o.String())
-					valueTmp, _ = sjson.Set(valueTmp, "homeSite", y.Get("homeSite").Array()[0].String())
+					tmpHomeSite := y.Get("homeSite").Array()
+					tmpStr := ""
+					if len(tmpHomeSite) > 0 {
+						tmpStr = tmpHomeSite[0].String()
+					}
+					valueTmp, _ = sjson.Set(valueTmp, "homeSite", tmpStr)
 					tmp = append(tmp, gjson.Parse(valueTmp))
 				}
 			}

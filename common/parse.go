@@ -148,9 +148,10 @@ func Parse(options *ENOptions) {
 	options.GetField = utils.SetStr(options.GetField)
 
 	if options.IsNoMerge {
+		options.IsMergeOut = !options.IsNoMerge
 		gologger.Info().Msgf("批量查询文件将单独导出！\n")
 	}
-	options.IsMergeOut = !options.IsNoMerge
+
 	options.GetField = utils.SetStr(options.GetField)
 	options.ENConfig = conf
 }

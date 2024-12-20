@@ -2,14 +2,13 @@ package runner
 
 import (
 	"fmt"
-	"regexp"
-
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
 	_interface "github.com/wgpsec/ENScan/interface"
+	"regexp"
 )
 
 func AdvanceFilter(job _interface.ENScan) string {
@@ -28,6 +27,7 @@ func AdvanceFilter(job _interface.ENScan) string {
 	return ""
 }
 
+// getInfoById 根据查询的ID查询公司信息，主要为判定投资类
 func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo map[string][]gjson.Result) {
 	if pid == "" {
 		gologger.Error().Msgf("获取PID为空！")
@@ -103,19 +103,19 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 			}
 
 		} else {
-			association = fmt.Sprintf("%s %s", enName, enMap[sk].KeyWord)
+			association = fmt.Sprintf("%s %s", enMap[sk].Name, enName)
 			gologger.Info().Msgf("%s", association)
 			// 增加数据，该类型下的全部企业数据
 			enLen := len(enInfo[sk])
 			for i, r := range enInfo[sk] {
-				gologger.Info().Msgf("[%d/%d]", i, enLen)
+				gologger.Info().Msgf("[%d/%d]", i+1, enLen)
 				tPid := r.Get(pidName).String()
 				tName := r.Get(etNameJ).String()
 				if etNameFilter != nil && etNameFilter.MatchString(tName) {
 					gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
 					continue
 				}
-				dEnData := getCompanyInfoById(tPid, association, searchList, job)
+				dEnData := getCompanyInfoById(tPid, tName+" "+association, searchList, job)
 				// 把查询完的一个企业按类别存起来
 				for dk, dr := range dEnData {
 					enInfo[dk] = append(enInfo[dk], dr...)
@@ -127,6 +127,7 @@ func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo
 	return enInfo
 }
 
+// getCompanyInfoById 获取公司的详细的信息
 func getCompanyInfoById(pid string, inFrom string, searchList []string, job _interface.ENScan) map[string][]gjson.Result {
 	enData := make(map[string][]gjson.Result)
 	res, enMap := job.GetCompanyBaseInfoById(pid)
@@ -161,6 +162,36 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 		}
 		// 展示数据
 		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
+	}
+	return enData
+}
+
+func getAppById(rdata map[string][]map[string]string, searchList []string, app _interface.App) (enInfo map[string][]gjson.Result) {
+	enData := make(map[string][]gjson.Result)
+	enMap := app.GetENMap()
+	for _, sk := range searchList {
+
+		if _, ok := enMap[sk]; !ok {
+			continue
+		}
+		s := enMap[sk]
+		var enList []string
+		// 获取需要的参数，比如企业名称、域名等
+		// 0和1分别表示 ENSMapLN 的 key 和 value，定位出需要的数据
+		// 暂时没遇到需要多种类型进行匹配的参数
+		ap := s.AppParams
+		for _, ens := range rdata[ap[0]] {
+			enList = append(enList, ens[ap[1]])
+		}
+		// 对获取的目标进行去重
+		utils.SetStr(enList)
+		gologger.Info().Msgf("共获取到【%d】条，开始执行插件获取信息", len(enList))
+		for i, v := range enList {
+			gologger.Info().Msgf("正在获取第【%d】条数据 【%s】", i+1, v)
+			listData := app.GetInfoList(v, sk)
+			enData[sk] = append(enData[sk], listData...)
+			utils.TBS(s.KeyWord, s.Field, s.Name, listData)
+		}
 	}
 	return enData
 }

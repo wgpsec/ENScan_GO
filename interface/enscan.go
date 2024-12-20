@@ -12,3 +12,8 @@ type ENScan interface {
 	GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo)
 	GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error)
 }
+
+type App interface {
+	GetInfoList(keyword string, types string) []gjson.Result
+	GetENMap() map[string]*common.EnsGo
+}
