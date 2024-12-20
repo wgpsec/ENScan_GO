@@ -99,7 +99,7 @@ func Parse(options *ENOptions) {
 	var tmp []string
 	for _, v := range options.GetType {
 		if _, ok := ScanTypeKeys[v]; !ok {
-			gologger.Error().Msgf("没有这个%s查询方式\n支持列表\n%s", v, ScanTypeKeys)
+			gologger.Error().Msgf("没有这个%s查询方式\n狼组成员可使用内部版本\n支持列表\n%s", v, ScanTypeKeys)
 		} else {
 			tmp = append(tmp, v)
 		}

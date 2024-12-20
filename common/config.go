@@ -151,13 +151,17 @@ type ENConfig struct {
 }
 
 var cfgYName = filepath.Join(utils.GetConfigPath(), "config.yaml")
-var cfgYV = 0.4
-var configYaml = `version: 0.4
+var cfgYV = 0.5
+var configYaml = `version: 0.5
 app:
-  miit_api: ''
+  miit_api: ''          # HG-ha的ICP_Query (非狼组维护，团队成员请使用内部版本)
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
   tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
-  qimai: ''             # 七麦数据  Cookie
+  qcc: ''               # 企查查   Cookie
+  qcctid: '' 			# 企查查   TID console.log(window.tid)
+  aldzs: ''             # 阿拉丁   Cookie
+  xlb: ''               # 小蓝本   Token
+  qimai: ''             # 七麦数据 Cookie
 `

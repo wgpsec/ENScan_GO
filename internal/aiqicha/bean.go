@@ -123,7 +123,8 @@ func GetReq(url string, options *common.ENOptions) string {
 	}
 	if resp.IsSuccessState() {
 		if strings.Contains(resp.String(), "百度安全验证") {
-			gologger.Error().Msgf("【AQC】需要安全验证，请打开链接进行验证后操作，10秒后重试！ %s \n", url)
+			gologger.Error().Msgf("【AQC】需要安全验证，请打开浏览器进行验证后操作，10秒后重试！ %s \n", "https://aiqicha.baidu.com/")
+			gologger.Debug().Msgf("URL:%s\n\n%s", url, resp.String())
 			time.Sleep(10 * time.Second)
 			return GetReq(url, options)
 		}
