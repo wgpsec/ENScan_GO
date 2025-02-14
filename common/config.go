@@ -2,11 +2,12 @@ package common
 
 import (
 	"fmt"
+	"path/filepath"
+	"time"
+
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"path/filepath"
-	"time"
 )
 
 var (
@@ -143,6 +144,7 @@ type ENConfig struct {
 		KuaiCha    string `yaml:"kuaicha"`
 		Tianyancha string `yaml:"tianyancha"`
 		Tycid      string `yaml:"tycid"`
+		AuthToken  string `yaml:"auth_token"`
 		QiMai      string `yaml:"qimai"`
 	}
 	App struct {
