@@ -3,15 +3,16 @@ package tianyancha
 import (
 	"crypto/tls"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/antchfx/htmlquery"
 	"github.com/imroc/req/v3"
 	"github.com/robertkrimen/otto"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"golang.org/x/net/html"
-	"regexp"
-	"strings"
-	"time"
 )
 
 func getENMap() map[string]*common.EnsGo {
@@ -144,7 +145,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 		clientR.SetHeader("Content-Type", "application/json")
 		//client.Header.Del("Cookie")
 		clientR.SetHeader("X-Tycid", options.ENConfig.Cookies.Tycid)
-		//client.Header.Set("X-Auth-Token", "")
+		clientR.SetHeader("X-Auth-Token", options.ENConfig.Cookies.AuthToken)
 	}
 	//加延迟1S
 	//强制延时1s

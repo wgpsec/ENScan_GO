@@ -161,6 +161,13 @@ Cookie信息请勿直接 `document.cookie`，可能因为http-only 选项无法�
 
 ![image-20230722194839975](./README/image-20230722194839975.png)
 
+
+**TYC auth_token**
+
+配置COOKIE后配置auth_token
+
+![image-20250215132223242](./README/image-20250215132223242.jpg)
+
 其他Cookie请自行参考获取
 
 
