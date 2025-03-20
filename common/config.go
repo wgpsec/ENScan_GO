@@ -161,6 +161,7 @@ cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
   tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
+  auth_token: ''        # 天眼查   Token (capi.tianyancha.com)
   qcc: ''               # 企查查   Cookie
   qcctid: '' 			# 企查查   TID console.log(window.tid)
   aldzs: ''             # 阿拉丁   Cookie
