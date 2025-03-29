@@ -1,11 +1,14 @@
 module github.com/wgpsec/ENScan
 
-go 1.21
+go 1.23
+
+toolchain go1.23.2
 
 require (
 	github.com/antchfx/htmlquery v1.3.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/imroc/req/v3 v3.43.7
+	github.com/mark3labs/mcp-go v0.17.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/projectdiscovery/gologger v1.1.12
 	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
@@ -36,6 +39,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -67,6 +71,7 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xuri/efp v0.0.0-20231025114914-d1ff6096ae53 // indirect
 	github.com/xuri/nfp v0.0.0-20230919160717-d98342af3f05 // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect

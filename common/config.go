@@ -49,6 +49,7 @@ type ENOptions struct {
 	IsNoMerge      bool   //聚合
 	OutPutType     string // 导出文件类型
 	IsApiMode      bool
+	IsMCPServer    bool
 	ENConfig       *ENConfig
 	BranchFilter   string
 }

@@ -86,6 +86,8 @@ func RunEnumeration(options *common.ENOptions) {
 
 	} else if options.IsApiMode {
 		api(options)
+	} else if options.IsMCPServer {
+		mcpServer(options)
 	} else {
 		RunJob(options)
 	}
@@ -164,7 +166,7 @@ func RunJob(options *common.ENOptions) map[string][]map[string]string {
 	}
 
 	wg.Wait()
-	if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode {
+	if options.IsMergeOut && options.InputFile == "" && !options.IsApiMode && !options.IsMCPServer {
 		err := common.OutFileByEnInfo(enDataList, options.KeyWord, options.OutPutType, options.Output)
 		if err != nil {
 			gologger.Error().Msgf(err.Error())

@@ -145,6 +145,24 @@
 ./enscan -n 小米 -delay 3
 ```
 
+### 使用MCP
+
+开启MCP服务器，将会监听本地的 http://localhost:8080
+
+```
+./enscan --mcp
+```
+
+以 Cherry Studio 配置为例
+
+![image-20250329160425571](./README/image-20250329160425571.png)
+
+配置完成完成后开启MCP服务
+
+![image-20250329160556011](./README/image-20250329160556011.png)
+
+配置完成后可以根据自己的需求编写prompt 欢迎 [在此](https://github.com/wgpsec/ENScan_GO/discussions/163) 分享好用的prompt 
+
 ### Cookie配置
 
 **AQC**

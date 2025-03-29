@@ -20,7 +20,7 @@ func main() {
 		for {
 			select {
 			case <-quitSig:
-				if !enOptions.IsApiMode {
+				if !enOptions.IsApiMode && !enOptions.IsMCPServer {
 					gologger.Error().Msgf("任务未完成退出，将自动保存过程文件！")
 					enDataList := make(map[string][]map[string]string)
 					close(runner.EnCh)
