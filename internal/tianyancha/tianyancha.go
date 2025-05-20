@@ -22,7 +22,7 @@ func (h *TYC) AdvanceFilter() ([]gjson.Result, error) {
 	name := h.Options.KeyWord
 	//使用关键词推荐方法进行检索，会出现信息不对的情况
 	//urls := "https://sp0.tianyancha.com/search/suggestV2.json?key=" + url.QueryEscape(name)
-	urls := "https://capi.tianyancha.com/cloud-tempest/web/searchCompanyV3"
+	urls := "https://capi.tianyancha.com/cloud-tempest/web/searchCompanyV4"
 	searchData := map[string]string{
 		"key":      name,
 		"pageNum":  "1",
