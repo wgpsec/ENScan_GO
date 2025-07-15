@@ -89,6 +89,7 @@ func (h *ENOptions) GetDelayRTime() int64 {
 	}
 	if h.DelayTime != 0 {
 		h.DelayMaxTime = int64(h.DelayTime)
+		return int64(h.DelayTime)
 	}
 	return 0
 }
