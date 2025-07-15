@@ -1,18 +1,12 @@
 package tianyancha
 
 import (
-	"crypto/tls"
-	"fmt"
-	"regexp"
-	"strings"
-	"time"
-
 	"github.com/antchfx/htmlquery"
-	"github.com/imroc/req/v3"
-	"github.com/robertkrimen/otto"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"golang.org/x/net/html"
+	"strings"
+	"time"
 )
 
 func getENMap() map[string]*common.EnsGo {
@@ -123,71 +117,39 @@ func getENMap() map[string]*common.EnsGo {
 	return ensInfoMap
 }
 
-func GetReq(url string, data string, options *common.ENOptions) string {
-	client := req.C()
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
-	client.SetTLSFingerprintChrome()
-	if options.Proxy != "" {
-		client.SetProxyURL(options.Proxy)
-	}
-	client.SetCommonHeaders(map[string]string{
+func (h *TYC) req(url string, data string) string {
+	c := common.NewClient(map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.60 Safari/537.36",
 		"Accept":     "text/html,application/json,application/xhtml+xml, image/jxr, */*",
 		"Version":    "TYC-Web",
-		"Cookie":     options.ENConfig.Cookies.Tianyancha,
+		"Cookie":     h.Options.ENConfig.Cookies.Tianyancha,
 		"Origin":     "https://www.tianyancha.com",
 		"Referer":    "https://www.tianyancha.com/",
-	})
-	clientR := client.R()
-
+	}, h.Options)
 	if strings.Contains(url, "capi.tianyancha.com") {
-		clientR.SetHeader("Content-Type", "application/json")
+		c.SetHeader("Content-Type", "application/json")
 		//client.Header.Del("Cookie")
-		clientR.SetHeader("X-Tycid", options.ENConfig.Cookies.Tycid)
-		clientR.SetHeader("X-Auth-Token", options.ENConfig.Cookies.AuthToken)
+		c.SetHeader("X-Tycid", h.Options.ENConfig.Cookies.Tycid)
+		c.SetHeader("X-Auth-Token", h.Options.ENConfig.Cookies.AuthToken)
 	}
-	//加延迟1S
-	//强制延时1s
-	time.Sleep(1 * time.Second)
-	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
 
 	method := "GET"
-	if data == "" {
-		method = "GET"
-	} else {
+	if data != "" {
 		method = "POST"
-		clientR.SetBody(data)
+		c.SetBody(data)
 	}
 
-	resp, err := clientR.Send(method, url)
-
-	//暂时没法直接算出Cookie信息等之后再看看吧
-	//if options.ENConfig.Cookies.Tianyancha == "" {
-	//	re := regexp.MustCompile(`arg1='([\w\s]+)';`)
-	//	rr := re.FindAllStringSubmatch(resp.String(), 1)
-	//	if len(rr) > 0 {
-	//		str := rr[0][1]
-	//		client.R().SetCookies(append(resp.Cookies(), &http.Cookie{Name: "acw_sc__v2", Value: str}))
-	//	}
-	//	gologger.Info().Msgf("【TYC】计算反爬获取Cookie成功 %s\n")
-	//	resp, _ = clientR.Send(method, url)
-	//}
+	resp, err := c.Send(method, url)
 
 	if err != nil {
-		if options.Proxy != "" {
-			client.SetProxy(nil)
-		}
-
 		gologger.Error().Msgf("【TYC】请求错误 %s 5秒后重试 【%s】\n", url, err)
-		if err.Error() == "unexpected EOF" {
-			UpCookie(resp.String(), options)
-
-		}
 		time.Sleep(5 * time.Second)
-		return GetReq(url, data, options)
+		return h.req(url, data)
 	}
 	if resp.StatusCode == 200 {
+		if strings.Contains(resp.String(), "\"message\":\"mustlogin\"") {
+			gologger.Error().Msgf("【TYC】需要登陆后尝试")
+		}
 		return resp.String()
 	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("【TYC】ip被禁止访问网站，请更换ip\n")
@@ -200,8 +162,7 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	} else if resp.StatusCode == 429 {
 		gologger.Error().Msgf("【TYC】429请求被拦截，清打开链接滑动验证码，程序将在10秒后重试 %s \n", url)
 		time.Sleep(10 * time.Second)
-		return GetReq(url, data, options)
-
+		return h.req(url, data)
 	} else {
 		gologger.Error().Msgf("【TYC】未知错误 %s\n", resp.StatusCode)
 		gologger.Debug().Msgf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
@@ -210,8 +171,8 @@ func GetReq(url string, data string, options *common.ENOptions) string {
 	return ""
 }
 
-func GetReqReturnPage(url string, options *common.ENOptions) *html.Node {
-	body := GetReq(url, "", options)
+func (h *TYC) GetReqReturnPage(url string) *html.Node {
+	body := h.req(url, "")
 	if strings.Contains(body, "请输入中国大陆手机号") {
 		gologger.Error().Msgf("[TYC] COOKIE检查失效，请检查COOKIE是否正确！\n")
 	}
@@ -220,85 +181,4 @@ func GetReqReturnPage(url string, options *common.ENOptions) *html.Node {
 	}
 	page, _ := htmlquery.Parse(strings.NewReader(body))
 	return page
-}
-
-func UpCookie(res string, options *common.ENOptions) {
-	re := regexp.MustCompile(`arg1='([\w\s]+)';`)
-	rr := re.FindAllStringSubmatch(res, 1)
-	str := rr[0][1]
-	if str != "" {
-		if options.ENConfig.Cookies.Tianyancha != "" {
-			re = regexp.MustCompile(`acw_sc__v2=([\w\s]+)`)
-			rr = re.FindAllStringSubmatch(options.ENConfig.Cookies.Tianyancha, 1)
-			if len(rr) > 0 {
-				str2 := rr[0][1]
-				if str2 != "" {
-					gologger.Info().Msgf("【TYC】反爬计算签名成功！\n")
-					options.ENConfig.Cookies.Tianyancha = strings.ReplaceAll(options.ENConfig.Cookies.Tianyancha, str2, SingAwcSCV2(str))
-				} else {
-					gologger.Error().Msgf("【TYC】反爬Cookie存在问题\n")
-				}
-			}
-		} else {
-			gologger.Info().Msgf("【TYC】未登录反爬计算签名成功！\n")
-			options.ENConfig.Cookies.Tianyancha = SingAwcSCV2(str)
-		}
-	} else {
-		gologger.Error().Msgf("【TYC】反爬存在问题\n")
-	}
-}
-
-// SingAwcSCV2 acw_sc__v2
-func SingAwcSCV2(tt string) string {
-	vm := otto.New()
-	_, err := vm.Run(`
-function s2 (t1,t) {
-    var str = "";
-    for (var i = 0; i < t1.length && i < t.length; i += 2) {
-        var a = parseInt(t1.slice(i, i + 2), 16);
-        var b = parseInt(t.slice(i, i + 2), 16);
-        var c = (a ^ b).toString(16);
-        if (c.length == 1) {
-            c = "0" + c;
-        }
-        str += c;
-    }
-    return str;
-}
- function s1 (tt) {
-    var listStr = [
-        0xf, 0x23, 0x1d, 0x18, 0x21, 0x10, 0x1, 0x26, 0xa, 0x9, 0x13, 0x1f, 0x28,
-        0x1b, 0x16, 0x17, 0x19, 0xd, 0x6, 0xb, 0x27, 0x12, 0x14, 0x8, 0xe, 0x15,
-        0x20, 0x1a, 0x2, 0x1e, 0x7, 0x4, 0x11, 0x5, 0x3, 0x1c, 0x22, 0x25, 0xc,
-        0x24
-    ];
-    var litss = [];
-    var a = "";
-    for (var i = 0; i < tt.length; i++) {
-        var b = tt[i];
-        for (var t = 0; t < listStr.length; t++) {
-            if (listStr[t] == i + 1) {
-                litss[t] = b;
-            }
-        }
-    }
-    a = litss.join("");
-    return a;
-}
-function sign(arg1,num) {
-    return s2(s1(arg1),num);
-}
-
-`)
-	if err != nil {
-		fmt.Println(err.Error())
-		return ""
-	}
-	call, err := vm.Call("sign", nil, tt, "3000176000856006061501533003690027800375")
-	if err != nil {
-		fmt.Println(err.Error())
-		return ""
-	}
-	res := call.String()
-	return res
 }

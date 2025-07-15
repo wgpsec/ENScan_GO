@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -50,6 +49,8 @@ type ENOptions struct {
 	OutPutType     string // 导出文件类型
 	IsApiMode      bool
 	IsMCPServer    bool
+	IsPlugins      bool // 是否作为后置插件查询
+	IsFast         bool // 是否快速查询
 	ENConfig       *ENConfig
 	BranchFilter   string
 }
@@ -70,6 +71,8 @@ type EnsGo struct {
 	Rf           string            // 返回数据关键词 TYC
 	DataModuleId int               // 企点获取数据ID点
 	AppParams    [2]string         // 插件需要获取的参数
+	Price        float32           // 价格
+	Ex           []string          // 扩展字段
 }
 
 // ENsD 通用返回内容格式
@@ -91,7 +94,6 @@ func (h *ENOptions) GetDelayRTime() int64 {
 }
 
 func (h *ENOptions) GetENConfig() *ENConfig {
-	fmt.Println(h.KeyWord)
 	return h.ENConfig
 }
 
@@ -120,13 +122,15 @@ var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", 
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var DeepSearch = []string{"invest", "branch", "holds", "supplier"}
-var ENSTypes = []string{"aqc", "tyc", "kc", "miit"}
+var ENSTypes = []string{"aqc", "tyc", "kc", "miit", "tycapi", "rb"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",
 	"tyc":     "天眼查",
+	"tycapi":  "天眼查",
 	"xlb":     "小蓝本",
 	"kc":      "快查",
+	"rb":      "风鸟",
 	"all":     "全部查询",
 	"aldzs":   "阿拉丁",
 	"coolapk": "酷安市场",
@@ -137,16 +141,19 @@ var ScanTypeKeys = map[string]string{
 
 // ENConfig YML配置文件，更改时注意变更 cfgYV 版本
 type ENConfig struct {
-	Version float64 `yaml:"version"`
-	Cookies struct {
-		Aldzs      string `yaml:"aldzs"`
-		Aiqicha    string `yaml:"aiqicha"`
-		Qidian     string `yaml:"qidian"`
-		KuaiCha    string `yaml:"kuaicha"`
-		Tianyancha string `yaml:"tianyancha"`
-		Tycid      string `yaml:"tycid"`
-		AuthToken  string `yaml:"auth_token"`
-		QiMai      string `yaml:"qimai"`
+	Version   float64 `yaml:"version"`
+	UserAgent string  `yaml:"user_agent"` // 自定义 User-Agent
+	Cookies   struct {
+		Aldzs       string `yaml:"aldzs"`
+		Aiqicha     string `yaml:"aiqicha"`
+		Qidian      string `yaml:"qidian"`
+		KuaiCha     string `yaml:"kuaicha"`
+		Tianyancha  string `yaml:"tianyancha"`
+		Tycid       string `yaml:"tycid"`
+		TycApiToken string `yaml:"tyc_api_token"`
+		RiskBird    string `yaml:"risk_bird"`
+		AuthToken   string `yaml:"auth_token"`
+		QiMai       string `yaml:"qimai"`
 	}
 	App struct {
 		MiitApi string `yaml:"miit_api"`
@@ -154,17 +161,18 @@ type ENConfig struct {
 }
 
 var cfgYName = filepath.Join(utils.GetConfigPath(), "config.yaml")
-var cfgYV = 0.5
-var configYaml = `version: 0.5
+var cfgYV = 0.6
+var configYaml = `version: 0.6
+user_agent: ""			# 自定义 User-Agent（可设置为获取Cookie的浏览器）
 app:
   miit_api: ''          # HG-ha的ICP_Query (非狼组维护，团队成员请使用内部版本)
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
   tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
+  tyc_api_token: ''     # 天眼查   官方API Token(https://open.tianyancha.com)
   auth_token: ''        # 天眼查   Token (capi.tianyancha.com)
-  qcc: ''               # 企查查   Cookie
-  qcctid: '' 			# 企查查   TID console.log(window.tid)
+  risk_bird: '' 		# 风鸟     Cookie
   aldzs: ''             # 阿拉丁   Cookie
   xlb: ''               # 小蓝本   Token
   qimai: ''             # 七麦数据 Cookie

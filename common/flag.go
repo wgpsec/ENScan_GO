@@ -46,6 +46,8 @@ func Flag(Info *ENOptions) {
 	flag.StringVar(&Info.OutPutType, "out-type", "xlsx", "导出的文件后缀 默认xlsx")
 	flag.BoolVar(&Info.IsDebug, "debug", false, "是否显示debug详细信息")
 	flag.BoolVar(&Info.IsShow, "is-show", true, "是否展示信息输出")
+	flag.BoolVar(&Info.IsFast, "is-fast", false, "跳过数量校验，直接开启查询")
+	flag.BoolVar(&Info.IsPlugins, "is-plugin", false, "是否以插件功能运行，默认false")
 	//其他设定
 	flag.BoolVar(&Info.IsGroup, "is-group", false, "查询关键词为集团")
 	flag.BoolVar(&Info.IsApiMode, "api", false, "API模式运行")

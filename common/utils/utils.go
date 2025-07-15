@@ -215,6 +215,8 @@ func TBS(h []string, ep []string, name string, data []gjson.Result) {
 	table.Render()
 }
 
+// MergeMap  合并map
+// s: 源map，list: 目标map
 func MergeMap(s map[string][]map[string]string, list map[string][]map[string]string) {
 	for k, v := range s {
 		if l, ok := list[k]; ok {

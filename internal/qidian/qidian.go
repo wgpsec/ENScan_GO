@@ -15,21 +15,21 @@ type QD struct {
 	Options *common.ENOptions
 }
 
-func (h *QD) AdvanceFilter() ([]gjson.Result, error) {
+func (h *QD) AdvanceFilter(name string) ([]gjson.Result, error) {
 	url := "https://holmes.taobao.com/web/corp/customer/searchWithSummary"
 	searchData := map[string]string{
 		"pageNo":      "1",
 		"pageSize":    "10",
-		"keyword":     h.Options.KeyWord,
+		"keyword":     name,
 		"orderByType": "5",
 	}
 	searchJsonData, _ := json.Marshal(searchData)
-	content := GetReq(url, string(searchJsonData), h.Options)
+	content := h.req(url, string(searchJsonData))
 	res := gjson.Parse(content)
 	enList := res.Get("data.data").Array()
 	if len(enList) == 0 {
-		gologger.Debug().Str("查询请求", h.Options.KeyWord).Msg(content)
-		return enList, fmt.Errorf("【QD】没有查询到关键词 %s", h.Options.KeyWord)
+		gologger.Debug().Str("查询请求", name).Msg(content)
+		return enList, fmt.Errorf("【QD】没有查询到关键词 %s", name)
 	}
 	return enList, nil
 }

@@ -14,11 +14,10 @@ type KC struct {
 	Options *common.ENOptions
 }
 
-func (h *KC) AdvanceFilter() ([]gjson.Result, error) {
-	name := h.Options.KeyWord
+func (h *KC) AdvanceFilter(name string) ([]gjson.Result, error) {
 	url := "https://www.kuaicha365.com/enterprise_info_app/V1/search/company_search_pc"
 	searchStr := `{"search_conditions":[],"keyword":"` + name + `","page":1,"page_size":20}"}`
-	content := GetReq(url, searchStr, h.Options)
+	content := h.req(url, searchStr)
 	content = strings.ReplaceAll(content, "<em>", "⌈")
 	content = strings.ReplaceAll(content, "</em>", "⌋")
 	enList := gjson.Get(content, "data.list").Array()
@@ -40,7 +39,7 @@ func (h *KC) GetEnsD() common.ENsD {
 
 func (h *KC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo) {
 	ensInfoMap := getENMap()
-	detailRess := GetReq("https://www.kuaicha365.com/open/app/v1/pc_enterprise/basic/info?org_id="+pid, "", h.Options)
+	detailRess := h.req("https://www.kuaicha365.com/open/app/v1/pc_enterprise/basic/info?org_id="+pid, "")
 	detailRes := gjson.Get(detailRess, "data")
 	// 匹配统计数据,需要从页面中提取数据来判断
 	for k, _ := range ensInfoMap {
@@ -50,17 +49,17 @@ func (h *KC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*commo
 }
 
 func (h *KC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	return getInfoList(pid+enMap.Fids, enMap.Api, h.Options), nil
+	return h.getInfoList(pid+enMap.Fids, enMap.Api, h.Options), nil
 }
 
-func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
+func (h *KC) getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
 	urls := "https://www.kuaicha365.com/" + types
 	if strings.Contains(types, "open/app/v1") {
 		urls += "?page_size=10" + "&org_id=" + pid
 	} else {
 		urls += "?pageSize=10&&orgid=" + pid
 	}
-	content := GetReq(urls+"&page=1", "", options)
+	content := h.req(urls+"&page=1", "")
 	var listData []gjson.Result
 	if gjson.Get(content, "status_code").String() == "0" {
 		data := gjson.Get(content, "data")
@@ -71,7 +70,7 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 			for i := 1; int(math.Ceil(float64(pageCount)/float64(10))) >= i; i++ {
 				gologger.Info().Msgf("当前：%s,%d\n", types, i)
 				reqUrls := urls + "&page=" + strconv.Itoa(i)
-				content = GetReq(reqUrls, "", options)
+				content = h.req(reqUrls, "")
 				listData = append(listData, gjson.Get(content, "data.list").Array()...)
 			}
 		} else {

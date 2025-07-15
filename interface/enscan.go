@@ -6,7 +6,7 @@ import (
 )
 
 type ENScan interface {
-	AdvanceFilter() ([]gjson.Result, error)
+	AdvanceFilter(name string) ([]gjson.Result, error)
 	GetENMap() map[string]*common.EnsGo
 	GetEnsD() common.ENsD
 	GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo)

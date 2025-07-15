@@ -17,9 +17,7 @@ type TYC struct {
 	Options *common.ENOptions
 }
 
-func (h *TYC) AdvanceFilter() ([]gjson.Result, error) {
-	options := h.Options
-	name := h.Options.KeyWord
+func (h *TYC) AdvanceFilter(name string) ([]gjson.Result, error) {
 	//使用关键词推荐方法进行检索，会出现信息不对的情况
 	//urls := "https://sp0.tianyancha.com/search/suggestV2.json?key=" + url.QueryEscape(name)
 	urls := "https://capi.tianyancha.com/cloud-tempest/web/searchCompanyV4"
@@ -35,7 +33,7 @@ func (h *TYC) AdvanceFilter() ([]gjson.Result, error) {
 	if err != nil {
 		return nil, fmt.Errorf("【TYC】关键词处理失败 %s", err.Error())
 	}
-	content := GetReq(urls, string(marshal), options)
+	content := h.req(urls, string(marshal))
 	content = strings.ReplaceAll(content, "<em>", "⌈")
 	content = strings.ReplaceAll(content, "</em>", "⌋")
 	enList := gjson.Get(content, "data.companyList").Array()
@@ -58,7 +56,14 @@ func (h *TYC) GetEnsD() common.ENsD {
 
 func (h *TYC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo) {
 	ensInfoMap := getENMap()
-	detailRes, enCount := searchBaseInfo(pid, false, h.Options)
+	// 快速模式跳过企业基本信息
+	if h.Options.IsFast {
+		for k, _ := range ensInfoMap {
+			ensInfoMap[k].Total = 1
+		}
+		return gjson.Result{}, ensInfoMap
+	}
+	detailRes, enCount := h.searchBaseInfo(pid, false, h.Options)
 	//修复成立日期信息
 	ts := time.UnixMilli(detailRes.Get("fromTime").Int())
 	enJsonTMP, _ := sjson.Set(detailRes.Raw, "fromTime", ts.Format("2006-01-02"))
@@ -70,11 +75,11 @@ func (h *TYC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 }
 
 func (h *TYC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := getInfoList(pid, enMap.Api, enMap, h.Options)
+	listData := h.getInfoList(pid, enMap.Api, enMap, h.Options)
 	return listData, nil
 }
 
-func getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOptions) (listData []gjson.Result) {
+func (h *TYC) getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOptions) (listData []gjson.Result) {
 	data := ""
 	if len(s.SData) != 0 {
 		dataTmp, _ := json.Marshal(s.SData)
@@ -90,7 +95,7 @@ func getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOp
 		data, _ = sjson.Set(data, "pageNum", 1)
 	}
 	gologger.Debug().Msgf("[TYC] getInfoList %s\n", urls)
-	content := GetReq(urls, data, options)
+	content := h.req(urls, data)
 	if gjson.Get(content, "state").String() != "ok" {
 		gologger.Error().Msgf("[TYC] getInfoList %s\n", content)
 		return listData
@@ -117,7 +122,7 @@ func getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOp
 			}
 
 			time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
-			content = GetReq(reqUrls, data, options)
+			content = h.req(reqUrls, data)
 			listData = append(listData, gjson.Get(content, pats).Array()...)
 		}
 	}
@@ -126,16 +131,16 @@ func getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOp
 }
 
 // searchBaseInfo 获取基本信息（此操作容易触发验证）
-func searchBaseInfo(pid string, tds bool, options *common.ENOptions) (result gjson.Result, enBaseInfo gjson.Result) {
+func (h *TYC) searchBaseInfo(pid string, tds bool, options *common.ENOptions) (result gjson.Result, enBaseInfo gjson.Result) {
 	// 这里没有获取统计信息的api，故从html获取
 	if tds {
 		//htmlInfo := htmlquery.FindOne(body, "//*[@class=\"position-rel company-header-container\"]//script")
 		//enBaseInfo = pageParseJson(htmlquery.InnerText(htmlInfo))
-		result = gjson.Get(GetReq("https://capi.tianyancha.com/cloud-other-information/companyinfo/baseinfo/web?id="+pid, "", options), "data")
+		result = gjson.Get(h.req("https://capi.tianyancha.com/cloud-other-information/companyinfo/baseinfo/web?id="+pid, ""), "data")
 		return result, gjson.Result{}
 	} else {
 		urls := "https://www.tianyancha.com/company/" + pid
-		body := GetReqReturnPage(urls, options)
+		body := h.GetReqReturnPage(urls)
 		htmlInfos := htmlquery.FindOne(body, "//*[@id=\"__NEXT_DATA__\"]")
 		enInfo := gjson.Parse(htmlquery.InnerText(htmlInfos))
 		enInfoD := enInfo.Get("props.pageProps.dehydratedState.queries").Array()

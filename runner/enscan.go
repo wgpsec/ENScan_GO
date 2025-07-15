@@ -12,7 +12,7 @@ import (
 )
 
 func AdvanceFilter(job _interface.ENScan) string {
-	enList, err := job.AdvanceFilter()
+	enList, err := job.AdvanceFilter(job.GetEnsD().Name)
 	enMap := job.GetENMap()["enterprise_info"]
 	if err != nil {
 		gologger.Error().Msg(err.Error())
@@ -135,6 +135,11 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 	// 增加企业信息
 	enJsonTMP, _ := sjson.Set(res.Raw, "inFrom", inFrom)
 	enData["enterprise_info"] = append(enData["enterprise_info"], gjson.Parse(enJsonTMP))
+	// 适配风鸟
+	if res.Get("orderNo").String() != "" {
+		pid = res.Get("orderNo").String()
+		fmt.Println(pid)
+	}
 	// 批量获取信息
 	for _, sk := range searchList {
 		s := enMap[sk]
@@ -162,6 +167,24 @@ func getCompanyInfoById(pid string, inFrom string, searchList []string, job _int
 		}
 		// 展示数据
 		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
+	}
+	return enData
+}
+
+// getAppById 直接使用关键词调用插件查询
+func getAppByKeyWord(keyWord string, searchList []string, app _interface.App) (enInfo map[string][]gjson.Result) {
+	enData := make(map[string][]gjson.Result)
+	enMap := app.GetENMap()
+	for _, sk := range searchList {
+		if _, ok := enMap[sk]; !ok {
+			continue
+		}
+		s := enMap[sk]
+		gologger.Info().Msgf("正在获取⌈%s⌋信息", s.Name)
+		listData := app.GetInfoList(keyWord, sk)
+		enData[sk] = append(enData[sk], listData...)
+		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
+
 	}
 	return enData
 }

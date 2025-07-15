@@ -1,51 +1,38 @@
 package qidian
 
 import (
-	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"time"
 )
 
-func GetReq(url string, data string, options *common.ENOptions) string {
-	client := req.C()
-	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
-	if options.Proxy != "" {
-		client.SetProxyURL(options.Proxy)
-	}
+func (h *QD) req(url string, data string) string {
 
-	if data == "" {
-		data = "{}"
-	}
-
-	client.SetCommonHeaders(map[string]string{
+	c := common.NewClient(map[string]string{
 		"User-Agent":   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
 		"Accept":       "text/html, application/xhtml+xml, image/jxr, */*",
 		"Content-Type": "application/json;charset=UTF-8",
-		"Cookie":       options.ENConfig.Cookies.Qidian,
+		"Cookie":       h.Options.ENConfig.Cookies.Qidian,
 		"Referer":      "https://www.dingtalk.com/",
-	})
-	//加入随机延时
-	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
-	clientR := client.R()
+	}, h.Options)
+	if data == "" {
+		data = "{}"
+	}
 	method := "GET"
 	if data == "{}" {
 		method = "GET"
 	} else {
 		method = "POST"
-		clientR.SetBody(data)
+		c.SetBody(data)
 	}
 
-	resp, err := clientR.Send(method, url)
+	resp, err := c.Send(method, url)
 
 	if err != nil {
-		if options.Proxy != "" {
-			client.SetProxy(nil)
-		}
 		gologger.Error().Msgf("【qidian】请求发生错误， %s 5秒后重试\n%s\n", url, err)
 		time.Sleep(5 * time.Second)
-		return GetReq(url, data, options)
+		return h.req(url, data)
 	}
 	if resp.StatusCode == 200 {
 		return resp.String()

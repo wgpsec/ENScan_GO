@@ -48,7 +48,7 @@ func helloSearchListByOgrName(ctx context.Context, request mcp.CallToolRequest) 
 	common.Parse(&enOptions)
 	enOptions.KeyWord = keyWord
 	job := &aiqicha.AQC{Options: &enOptions}
-	enList, err := job.AdvanceFilter()
+	enList, err := job.AdvanceFilter(job.GetEnsD().Name)
 	enMap := job.GetENMap()["enterprise_info"]
 	if err != nil {
 		gologger.Error().Msg(err.Error())

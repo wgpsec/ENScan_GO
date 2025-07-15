@@ -1,9 +1,7 @@
 package aiqicha
 
 import (
-	"crypto/tls"
 	"fmt"
-	"github.com/imroc/req/v3"
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
@@ -95,38 +93,26 @@ func getENMap() map[string]*common.EnsGo {
 
 }
 
-func GetReq(url string, options *common.ENOptions) string {
-	client := req.C()
-	client.SetTLSFingerprintChrome()
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	client.SetTimeout(time.Duration(options.TimeOut) * time.Minute)
-	if options.Proxy != "" {
-		client.SetProxyURL(options.Proxy)
-	}
-	client.SetCommonHeaders(map[string]string{
+func (h *AQC) req(url string) string {
+	c := common.NewClient(map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
 		"Accept":     "text/html, application/xhtml+xml, image/jxr, */*",
-		"Cookie":     options.ENConfig.Cookies.Aiqicha,
+		"Cookie":     h.Options.ENConfig.Cookies.Aiqicha,
 		"Referer":    "https://aiqicha.baidu.com/",
-	})
-	//加入随机延时
-	time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
-	resp, err := client.R().Get(url)
+	}, h.Options)
+	resp, err := c.Get(url)
 
 	if err != nil {
-		if options.Proxy != "" {
-			client.SetProxy(nil)
-		}
 		gologger.Error().Msgf("【AQC】请求发生错误， %s 5秒后重试\n%s\n", url, err)
 		time.Sleep(5 * time.Second)
-		return GetReq(url, options)
+		return h.req(url)
 	}
 	if resp.IsSuccessState() {
 		if strings.Contains(resp.String(), "百度安全验证") {
 			gologger.Error().Msgf("【AQC】需要安全验证，请打开浏览器进行验证后操作，10秒后重试！ %s \n", "https://aiqicha.baidu.com/")
 			gologger.Debug().Msgf("URL:%s\n\n%s", url, resp.String())
 			time.Sleep(10 * time.Second)
-			return GetReq(url, options)
+			return h.req(url)
 		}
 		return resp.String()
 	} else if resp.StatusCode == 403 {

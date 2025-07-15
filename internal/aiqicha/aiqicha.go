@@ -19,11 +19,10 @@ type AQC struct {
 }
 
 // AdvanceFilter 筛选过滤
-func (h *AQC) AdvanceFilter() ([]gjson.Result, error) {
-	name := h.Options.KeyWord
+func (h *AQC) AdvanceFilter(name string) ([]gjson.Result, error) {
 	urls := "https://aiqicha.baidu.com/s?q=" + urlTool.QueryEscape(name) + "&t=0"
 	//urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + urlTool.QueryEscape(name) + "&p=1&s=10&f={}"
-	content := GetReq(urls, h.Options)
+	content := h.req(urls)
 	content = strings.ReplaceAll(content, "<em>", "⌈")
 	content = strings.ReplaceAll(content, "<\\/em>", "⌋")
 	rq, _ := pageParseJson(content)
@@ -55,7 +54,7 @@ func (h *AQC) GetEnsD() common.ENsD {
 func (h *AQC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo) {
 	// 企业基本信息
 	urls := "https://aiqicha.baidu.com/detail/basicAllDataAjax?pid=" + pid
-	baseRes := GetReq(urls, h.Options)
+	baseRes := h.req(urls)
 	res := gjson.Get(baseRes, "data.basicData")
 	// 修复没有pid的问题
 	r, _ := sjson.Set(res.Raw, "pid", pid)
@@ -64,7 +63,7 @@ func (h *AQC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 	ensInfoMap := getENMap()
 	// 获取企业信息列表
 	enInfoUrl := "https://aiqicha.baidu.com/compdata/navigationListAjax?pid=" + pid
-	enInfoRes := GetReq(enInfoUrl, h.Options)
+	enInfoRes := h.req(enInfoUrl)
 	// 初始化数量数据
 	if gjson.Get(enInfoRes, "status").String() == "0" {
 		for _, s := range gjson.Get(enInfoRes, "data").Array() {
@@ -93,14 +92,14 @@ func (h *AQC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 }
 
 func (h *AQC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := getInfoList(pid, enMap.Api, h.Options)
+	listData := h.getInfoList(pid, enMap.Api, h.Options)
 	return listData, nil
 }
 
 // getInfoList 获取信息列表
-func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
+func (h *AQC) getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
 	urls := "https://aiqicha.baidu.com/" + types + "?pid=" + pid
-	content := GetReq(urls, options)
+	content := h.req(urls)
 	var listData []gjson.Result
 	if gjson.Get(content, "status").String() == "0" {
 		data := gjson.Get(content, "data")
@@ -115,7 +114,7 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 			for i := 1; int(pageCount) >= i; i++ {
 				gologger.Info().Msgf("当前：%s,%d\n", types, i)
 				reqUrls := urls + "&p=" + strconv.Itoa(i)
-				content = GetReq(reqUrls, options)
+				content = h.req(reqUrls)
 				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
 			}
 		} else {
