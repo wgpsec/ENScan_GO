@@ -165,15 +165,13 @@ var cfgYV = 0.6
 var configYaml = `version: 0.6
 user_agent: ""			# 自定义 User-Agent（可设置为获取Cookie的浏览器）
 app:
-  miit_api: ''          # HG-ha的ICP_Query (非狼组维护，团队成员请使用内部版本)
+  miit_api: ''          # HG-ha的ICP_Query (非狼组维护 https://github.com/HG-ha/ICP_Query) 
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie
   tycid: ''        		# 天眼查   CApi ID(capi.tianyancha.com)
-  tyc_api_token: ''     # 天眼查   官方API Token(https://open.tianyancha.com)
   auth_token: ''        # 天眼查   Token (capi.tianyancha.com)
+  tyc_api_token: ''     # 天眼查   官方API Key(https://open.tianyancha.com)
   risk_bird: '' 		# 风鸟     Cookie
-  aldzs: ''             # 阿拉丁   Cookie
-  xlb: ''               # 小蓝本   Token
   qimai: ''             # 七麦数据 Cookie
 `
