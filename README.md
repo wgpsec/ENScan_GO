@@ -323,7 +323,7 @@ go >= 1.22.1
 
 ## 交流&反馈
 
-关注公众号 `WgpSec狼组安全团队` 回复`加群`一起交流~
+关注公众号 `WgpSec狼组安全团队` 回复`加群` 添加BOT后发送 `enscan` 一起交流~
 
 ![](https://assets.wgpsec.org/www/images/wechat.png)
 
