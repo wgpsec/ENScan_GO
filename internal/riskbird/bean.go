@@ -1,6 +1,7 @@
 package riskbird
 
 import (
+	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"strings"
@@ -67,8 +68,8 @@ func getENMap() map[string]*common.EnsGo {
 			Api:     "companyInvest",
 			GNum:    "companyInvestCount",
 			SData:   map[string]string{"category": "-100", "percentLevel": "-100", "province": "-100"},
-			Field:   []string{"name", "personName", "entStatus", "funderRatio", "entid"},
-			KeyWord: []string{"entName", "法人", "状态", "投资比例", "PID"},
+			Field:   []string{"entName", "personName", "entStatus", "funderRatio", "entid"},
+			KeyWord: []string{"企业名称", "法人", "状态", "投资比例", "PID"},
 		},
 		"branch": {
 			Name:    "分支机构",
@@ -120,6 +121,10 @@ func (h *RB) req(url string, data string) string {
 		return h.req(url, data)
 	}
 	if resp.StatusCode == 200 {
+		rs := gjson.Parse(resp.String())
+		if rs.Get("state").String() == "limit:auth" {
+			gologger.Fatal().Msgf("【RB】您今日的查询次数已达到上限！请前往网站检查~\n")
+		}
 		return resp.String()
 	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("【RB】ip被禁止访问网站，请更换ip\n")
