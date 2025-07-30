@@ -21,7 +21,6 @@ func Banner() {
 	gologger.Print().Msgf("https://github.com/wgpsec/ENScan_GO\n\n")
 	gologger.Print().Msgf("工具仅用于信息收集，请勿用于非法用途\n")
 	gologger.Print().Msgf("开发人员不承担任何责任，也不对任何滥用或损坏负责.\n")
-
 }
 
 func Flag(Info *ENOptions) {
@@ -42,7 +41,6 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsJsonOutput, "json", false, "json导出")
 	flag.StringVar(&Info.Output, "out-dir", "", "结果输出的文件夹位置(默认为outs)")
 	flag.StringVar(&Info.BranchFilter, "branch-filter", "", "提供一个正则表达式，名称匹配该正则的分支机构和子公司会被跳过")
-	flag.StringVar(&Info.UPOutFile, "out-update", "", "导出指定范围文件，自更新")
 	flag.StringVar(&Info.OutPutType, "out-type", "xlsx", "导出的文件后缀 默认xlsx")
 	flag.BoolVar(&Info.IsDebug, "debug", false, "是否显示debug详细信息")
 	flag.BoolVar(&Info.IsShow, "is-show", true, "是否展示信息输出")

@@ -15,16 +15,31 @@ type Miit struct {
 
 func (h *Miit) GetInfoList(keyword string, types string) []gjson.Result {
 	enMap := getENMap()
-	return getInfoList(keyword, enMap[types].Api, h.Options)
+	return h.getInfoList(keyword, enMap[types].Api, h.Options)
 }
 
 func (h *Miit) GetENMap() map[string]*common.EnsGo {
 	return getENMap()
 }
 
-func getInfoList(keyword string, types string, options *common.ENOptions) []gjson.Result {
+func (h *Miit) GetInfoByPage(keyword string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	url := h.Options.ENConfig.App.MiitApi + "/query/" + em.Api + "?page=" + strconv.Itoa(page) + "&search=" + urlTool.QueryEscape(keyword)
+	content := h.getReq(url+"&page=1", "")
+	var listData []gjson.Result
+	data := gjson.Get(content, "data")
+	listData = data.Get("list").Array()
+	info = common.InfoPage{
+		Total:   data.Get("total").Int(),
+		Size:    data.Get("pages").Int(),
+		HasNext: data.Get("hasNextPage").Bool(),
+		Data:    listData,
+	}
+	return info, err
+}
+
+func (h *Miit) getInfoList(keyword string, types string, options *common.ENOptions) []gjson.Result {
 	url := options.ENConfig.App.MiitApi + "/query/" + types + "?page=1&search=" + urlTool.QueryEscape(keyword)
-	content := getReq(url+"&page=1", "", options)
+	content := h.getReq(url+"&page=1", "")
 	var listData []gjson.Result
 	data := gjson.Get(content, "data")
 	listData = data.Get("list").Array()
@@ -34,7 +49,7 @@ func getInfoList(keyword string, types string, options *common.ENOptions) []gjso
 			reqUrls := url + "&page=" + strconv.Itoa(i)
 			// 强制延时！！特别容易被封
 			time.Sleep(5 * time.Second)
-			content = getReq(reqUrls, "", options)
+			content = h.getReq(reqUrls, "")
 			listData = append(listData, gjson.Get(content, "data.list").Array()...)
 		}
 	}

@@ -89,7 +89,7 @@ func getENMap() map[string]*common.EnsGo {
 
 	for k, _ := range ensInfoMap {
 		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联")
-		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "ref")
 	}
 	return ensInfoMap
 }
@@ -100,7 +100,7 @@ func (h *RB) req(url string, data string) string {
 		"Accept":       "text/html,application/json,application/xhtml+xml, image/jxr, */*",
 		"App-Device":   "WEB",
 		"Content-Type": "application/json",
-		"Cookie":       h.Options.ENConfig.Cookies.RiskBird,
+		"Cookie":       h.Options.GetCookie("rb"),
 		"Origin":       "https://www.riskbird.com",
 		"Referer":      "https://www.riskbird.com/ent/",
 	}, h.Options)
@@ -123,7 +123,9 @@ func (h *RB) req(url string, data string) string {
 	if resp.StatusCode == 200 {
 		rs := gjson.Parse(resp.String())
 		if rs.Get("state").String() == "limit:auth" {
-			gologger.Fatal().Msgf("【RB】您今日的查询次数已达到上限！请前往网站检查~\n")
+			gologger.Error().Msgf("【RB】您今日的查询次数已达到上限！请前往网站检查~ 30秒后重试\n")
+			time.Sleep(30 * time.Second)
+			return h.req(url, data)
 		}
 		return resp.String()
 	} else if resp.StatusCode == 403 {

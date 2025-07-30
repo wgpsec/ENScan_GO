@@ -6,23 +6,23 @@ import (
 	"github.com/projectdiscovery/gologger/levels"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 )
 
-func Parse(options *ENOptions) {
-
+func (op *ENOptions) Parse() {
 	//DEBUG模式设定
-	if options.IsDebug {
+	if op.IsDebug {
 		gologger.DefaultLogger.SetMaxLevel(levels.LevelDebug)
 		gin.SetMode(gin.DebugMode)
 		gologger.Debug().Msgf("DEBUG 模式已开启\n")
 	}
 
 	//判断版本信息
-	if options.Version {
+	if op.Version {
 		gologger.Info().Msgf("Current Version: %s\n", GitTag)
 		gologger.Info().Msgf("当前所需配置文件版本 V%.1f\n", cfgYV)
 		if ok, _ := utils.PathExists(cfgYName); !ok {
@@ -54,104 +54,106 @@ func Parse(options *ENOptions) {
 		gologger.Fatal().Msgf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
 
-	if options.KeyWord == "" && options.CompanyID == "" && options.InputFile == "" && !options.IsApiMode && !options.IsMCPServer {
+	if op.KeyWord == "" && op.CompanyID == "" && op.InputFile == "" && !op.IsApiMode && !op.IsMCPServer {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
 	//初始化输出文件夹位置
-	if options.Output == "" {
-		options.Output = "outs"
+	if op.Output == "" {
+		op.Output = "outs"
 	}
 
-	if options.IsJsonOutput {
-		options.OutPutType = "json"
+	if op.IsJsonOutput {
+		op.OutPutType = "json"
 	}
 
-	if options.Output == "!" {
+	if op.Output == "!" {
 		gologger.Info().Msgf("当前模式不会导出文件信息！\n")
 	}
 
-	if options.Proxy != "" {
-		gologger.Info().Msgf("代理已设定 ⌈%s⌋\n", options.Proxy)
+	if op.Proxy != "" {
+		gologger.Info().Msgf("代理已设定 ⌈%s⌋\n", op.Proxy)
 	}
 
-	if options.InputFile != "" {
-		if ok := utils.FileExists(options.InputFile); !ok {
-			gologger.Fatal().Msgf("未获取到文件⌈%s⌋请检查文件名是否正确\n", options.InputFile)
+	if op.InputFile != "" {
+		if ok := utils.FileExists(op.InputFile); !ok {
+			gologger.Fatal().Msgf("未获取到文件⌈%s⌋请检查文件名是否正确\n", op.InputFile)
 		}
 	}
-
+	if op.IsNoMerge {
+		gologger.Info().Msgf("批量查询文件将单独导出！\n")
+	}
+	op.IsMergeOut = !op.IsNoMerge
+	op.ENConfig = conf
 	//数据源判断 默认为爱企查
-	if options.ScanType == "" && len(options.GetType) == 0 {
-		options.ScanType = "aqc"
+	if op.ScanType == "" && len(op.GetType) == 0 {
+		op.ScanType = "aqc"
 	}
 
 	//如果是指定全部数据
-	if options.ScanType == "all" {
-		options.GetType = ENSTypes
-		options.IsMergeOut = true
-	} else if options.ScanType != "" {
-		options.GetType = strings.Split(options.ScanType, ",")
+	if op.ScanType == "all" {
+		op.GetType = ENSTypes
+		op.IsMergeOut = true
+	} else if op.ScanType != "" {
+		op.GetType = strings.Split(op.ScanType, ",")
 	}
 
-	options.GetType = utils.SetStr(options.GetType)
+	op.GetType = utils.SetStr(op.GetType)
 	var tmp []string
-	for _, v := range options.GetType {
+	for _, v := range op.GetType {
 		if _, ok := ScanTypeKeys[v]; !ok {
-			gologger.Error().Msgf("没有这个%s查询方式\n狼组成员可使用内部版本\n支持列表\n%s", v, ScanTypeKeys)
+			gologger.Error().Msgf("没有这个%s查询方式\n支持列表\n%s", v, ScanTypeKeys)
 		} else {
 			tmp = append(tmp, v)
 		}
 	}
-	options.GetType = tmp
+	op.GetType = tmp
 
 	// 判断获取数据字段信息
-	options.GetField = utils.SetStr(options.GetField)
-	if options.GetFlags == "" && len(options.GetField) == 0 {
-		options.GetField = DefaultInfos
-	} else if options.GetFlags == "all" {
-		options.GetField = DefaultAllInfos
-	} else if options.GetFlags != "" {
-		options.GetField = strings.Split(options.GetFlags, ",")
-		if len(options.GetField) <= 0 {
-			gologger.Fatal().Msgf("没有获取字段信息！\n" + options.GetFlags)
+	op.GetField = utils.SetStr(op.GetField)
+	if op.GetFlags == "" && len(op.GetField) == 0 {
+		op.GetField = DefaultInfos
+	} else if op.GetFlags == "all" {
+		op.GetField = DefaultAllInfos
+	} else if op.GetFlags != "" {
+		op.GetField = strings.Split(op.GetFlags, ",")
+		if len(op.GetField) <= 0 {
+			gologger.Fatal().Msgf("没有获取字段信息！\n" + op.GetFlags)
 		}
 	}
 
-	if options.UPOutFile != "" && len(options.GetField) > 1 {
-		gologger.Fatal().Msgf("自更新导出仅支持输出一个参数！⌈%s⌋", options.GetField)
+	// 是否深度获取分支机构
+	if op.IsSearchBranch {
+		op.IsGetBranch = true
 	}
 
-	// 是否深度获取分支机构
-	if options.IsSearchBranch {
-		options.IsGetBranch = true
+	if op.BranchFilter != "" {
+		op.NameFilterRegexp = regexp.MustCompile(op.BranchFilter)
 	}
 
 	//是否获取分支机构
-	if options.IsGetBranch {
-		options.GetField = append(options.GetField, "branch")
+	if op.IsGetBranch {
+		op.GetField = append(op.GetField, "branch")
 	}
 	// 投资信息如果不等于0，那就收集股东信息和对外投资信息
-	if options.InvestNum != 0 {
-		options.GetField = append(options.GetField, "invest")
-		options.GetField = append(options.GetField, "partner")
-		gologger.Info().Msgf("获取投资信息，将会获取⌈%d⌋级子公司", options.Deep)
+	if op.InvestNum != 0 {
+		op.GetField = append(op.GetField, "invest")
+		op.GetField = append(op.GetField, "partner")
+		gologger.Info().Msgf("获取投资信息，将会获取⌈%d⌋级子公司", op.Deep)
 	}
 	// 控股信息（大部分需要VIP）
-	if options.IsHold {
-		options.GetField = append(options.GetField, "holds")
+	if op.IsHold {
+		op.GetField = append(op.GetField, "holds")
 	}
-	if options.IsSupplier {
-		options.GetField = append(options.GetField, "supplier")
+	if op.IsSupplier {
+		op.GetField = append(op.GetField, "supplier")
 	}
-	options.GetField = utils.SetStr(options.GetField)
+	if op.Deep <= 0 {
+		op.Deep = 1
+	}
+	op.GetField = utils.SetStr(op.GetField)
 
-	if options.IsNoMerge {
-		gologger.Info().Msgf("批量查询文件将单独导出！\n")
-	}
-	options.IsMergeOut = !options.IsNoMerge
+	op.GetField = utils.SetStr(op.GetField)
 
-	options.GetField = utils.SetStr(options.GetField)
-	options.ENConfig = conf
 }

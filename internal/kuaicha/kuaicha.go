@@ -5,7 +5,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -48,34 +47,21 @@ func (h *KC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*commo
 	return detailRes, ensInfoMap
 }
 
-func (h *KC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	return h.getInfoList(pid+enMap.Fids, enMap.Api, h.Options), nil
-}
-
-func (h *KC) getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
-	urls := "https://www.kuaicha365.com/" + types
-	if strings.Contains(types, "open/app/v1") {
-		urls += "?page_size=10" + "&org_id=" + pid
+func (h *KC) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	urls := "https://www.kuaicha365.com/" + em.Api
+	if strings.Contains(em.Api, "open/app/v1") {
+		urls += "?page_size=10" + "&org_id="
 	} else {
-		urls += "?pageSize=10&&orgid=" + pid
+		urls += "?pageSize=10&&orgid="
 	}
-	content := h.req(urls+"&page=1", "")
-	var listData []gjson.Result
-	if gjson.Get(content, "status_code").String() == "0" {
-		data := gjson.Get(content, "data")
-
-		//判断是否多页，遍历获取所有数据
-		pageCount := data.Get("total").Int()
-		if data.Get("next_page").Bool() {
-			for i := 1; int(math.Ceil(float64(pageCount)/float64(10))) >= i; i++ {
-				gologger.Info().Msgf("当前：%s,%d\n", types, i)
-				reqUrls := urls + "&page=" + strconv.Itoa(i)
-				content = h.req(reqUrls, "")
-				listData = append(listData, gjson.Get(content, "data.list").Array()...)
-			}
-		} else {
-			listData = data.Get("list").Array()
-		}
+	urls += pid + em.Fids + "&page=" + strconv.Itoa(page)
+	content := h.req(urls, "")
+	data := gjson.Get(content, "data")
+	info = common.InfoPage{
+		Size:    10,
+		Total:   data.Get("total").Int(),
+		Data:    data.Get("list").Array(),
+		HasNext: data.Get("next_page").Bool(),
 	}
-	return listData
+	return info, err
 }

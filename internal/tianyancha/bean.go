@@ -112,7 +112,7 @@ func getENMap() map[string]*common.EnsGo {
 
 	for k, _ := range ensInfoMap {
 		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联")
-		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "ref")
 	}
 	return ensInfoMap
 }
@@ -122,7 +122,7 @@ func (h *TYC) req(url string, data string) string {
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.60 Safari/537.36",
 		"Accept":     "text/html,application/json,application/xhtml+xml, image/jxr, */*",
 		"Version":    "TYC-Web",
-		"Cookie":     h.Options.ENConfig.Cookies.Tianyancha,
+		"Cookie":     h.Options.GetCookie("tyc"),
 		"Origin":     "https://www.tianyancha.com",
 		"Referer":    "https://www.tianyancha.com/",
 	}, h.Options)

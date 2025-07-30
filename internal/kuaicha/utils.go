@@ -85,7 +85,7 @@ func getENMap() map[string]*common.EnsGo {
 	}
 	for k := range ensInfoMap {
 		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联  ")
-		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "ref")
 	}
 	return ensInfoMap
 
@@ -96,7 +96,7 @@ func (h *KC) req(url string, data string) string {
 		"User-Agent":   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
 		"Accept":       "text/html, application/xhtml+xml, image/jxr, */*",
 		"Content-Type": "application/json;charset=UTF-8",
-		"Cookie":       h.Options.ENConfig.Cookies.KuaiCha,
+		"Cookie":       h.Options.GetCookie("kc"),
 		"Source":       "PC",
 		"Referer":      "https://www.kuaicha365.com/search-result?",
 	}, h.Options)

@@ -135,7 +135,7 @@ func getENMap() map[string]*common.EnsGo {
 	base := "http://open.api.tianyancha.com/services/"
 	for k, _ := range ensInfoMap {
 		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联")
-		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "ref")
 		if k != "holds" {
 			base += "open/"
 		}

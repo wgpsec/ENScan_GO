@@ -87,7 +87,7 @@ func getENMap() map[string]*common.EnsGo {
 	}
 	for k := range ensInfoMap {
 		ensInfoMap[k].KeyWord = append(ensInfoMap[k].KeyWord, "数据关联  ")
-		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "inFrom")
+		ensInfoMap[k].Field = append(ensInfoMap[k].Field, "ref")
 	}
 	return ensInfoMap
 
@@ -97,7 +97,7 @@ func (h *AQC) req(url string) string {
 	c := common.NewClient(map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
 		"Accept":     "text/html, application/xhtml+xml, image/jxr, */*",
-		"Cookie":     h.Options.ENConfig.Cookies.Aiqicha,
+		"Cookie":     h.Options.GetCookie("aqc"),
 		"Referer":    "https://aiqicha.baidu.com/",
 	}, h.Options)
 	resp, err := c.Get(url)

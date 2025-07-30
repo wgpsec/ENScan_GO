@@ -7,214 +7,246 @@ import (
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
-	_interface "github.com/wgpsec/ENScan/interface"
-	"regexp"
 )
 
-func AdvanceFilter(job _interface.ENScan) string {
-	enList, err := job.AdvanceFilter(job.GetEnsD().Name)
-	enMap := job.GetENMap()["enterprise_info"]
+// SearchByKeyWord 根据关键词筛选公司
+func (j *EnJob) SearchByKeyWord(keyword string) (string, error) {
+	enList, err := j.job.AdvanceFilter(keyword)
+	enMap := j.job.GetENMap()["enterprise_info"]
 	if err != nil {
 		gologger.Error().Msg(err.Error())
-	} else {
-		gologger.Info().Msgf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", job.GetEnsD().Name, len(enList))
-		//展示结果
-		utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), "企业信息", enList)
-		pid := enList[0].Get(enMap.Field[10]).String()
-		gologger.Debug().Str("PID", pid).Msgf("搜索")
-		return pid
+		return "", err
 	}
-	return ""
+	gologger.Info().Msgf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", keyword, len(enList))
+	//展示结果
+	utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), "企业信息", enList)
+	// 选择第一个的PID
+	pid := enList[0].Get(enMap.Field[10]).String()
+	gologger.Debug().Str("PID", pid).Msgf("搜索")
+	return pid, nil
 }
 
-// getInfoById 根据查询的ID查询公司信息，主要为判定投资类
-func getInfoById(pid string, searchList []string, job _interface.ENScan) (enInfo map[string][]gjson.Result) {
+// getInfoById 根据查询的ID查询公司信息，并关联企业
+func (j *EnJob) getInfoById(pid string, searchList []string) error {
 	if pid == "" {
 		gologger.Error().Msgf("获取PID为空！")
-		return map[string][]gjson.Result{}
+		return fmt.Errorf("获取PID为空")
 	}
-	enMap := job.GetENMap()
-	options := job.GetEnsD().Op
+	enMap := j.job.GetENMap()
 	// 基本信息获取
-	enInfo = getCompanyInfoById(pid, "", searchList, job)
+	enInfo := j.getCompanyInfoById(pid, searchList, "")
 	enName := enInfo["enterprise_info"][0].Get(enMap["enterprise_info"].Field[0]).String()
-	var ds []string
-	for _, s := range searchList {
-		if utils.IsInList(s, common.DeepSearch) {
-			// 跳过分支机构搜索
-			if s == "branch" && !options.IsSearchBranch {
-				continue
-			}
-			ds = append(ds, s)
-		}
+	// 初始化需要深度获取的字段关系
+	var dps []common.DPS
+	for _, sk := range searchList {
+		// 关联所有DPS数据信息
+		dps = append(dps, j.getDPS(enInfo[sk], enName, 1, enMap, sk)...)
 	}
-	if len(ds) > 0 {
-		gologger.Info().Msgf("深度搜索列表：%v", ds)
+	if len(dps) == 0 {
+		j.closeCH()
+		return nil
 	}
-	var etNameFilter *regexp.Regexp
-	if options.BranchFilter != "" {
-		etNameFilter = regexp.MustCompile(options.BranchFilter)
+	gologger.Info().Msgf("DPS长度：%d", len(dps))
+	j.newTaskQueue(len(dps) * 2)
+	j.StartWorkers()
+	for _, dp := range dps {
+		j.AddTask(DeepSearchTask{
+			DPS:        dp,
+			SearchList: searchList,
+		})
 	}
-	for _, sk := range ds {
-		enSk := enMap[sk].Field
-		pidName := enSk[len(enSk)-2]
-		etNameJ := enSk[0]
-		scaleName := enSk[3]
-		association := enMap[sk].Name
-		if len(enInfo[sk]) == 0 {
-			gologger.Info().Str("type", sk).Msgf("【x】%s 数量为空，跳过搜索\n", association)
-			continue
-		}
-
-		if sk == "invest" {
-			iEnData := make([][]gjson.Result, options.Deep)
-			iEnData = append(iEnData, make([]gjson.Result, 0))
-			// 投资信息赋值
-			iEnData[0] = enInfo[sk]
-			for i := 0; i < options.Deep; i++ {
-				if len(iEnData[i]) <= 0 {
-					break
-				}
-				var nextInK []gjson.Result
-				for _, r := range iEnData[i] {
-					tPid := r.Get(pidName).String()
-					tName := r.Get(etNameJ).String()
-					if etNameFilter != nil && etNameFilter.MatchString(tName) {
-						gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
-						continue
-					}
-					gologger.Debug().Str("PID", tPid).Str("Name", tName).Str("PID NAME", pidName).Msgf("查询PID")
-					// 计算投资比例判断是否符合
-					investNum := utils.FormatInvest(r.Get(scaleName).String())
-					if investNum < options.InvestNum {
-						continue
-					}
-					association = fmt.Sprintf("%s ⌈%d⌋级投资⌈%.2f%%⌋-%s", tName, i+1, investNum, enName)
-					gologger.Info().Msgf("%s", association)
-					dEnData := getCompanyInfoById(tPid, association, searchList, job)
-					// 保存当前数据
-					for dk, dr := range dEnData {
-						enInfo[dk] = append(enInfo[dk], dr...)
-					}
-					// 存下一层需要跑的信息
-					nextInK = append(nextInK, dEnData[sk]...)
-				}
-				iEnData[i+1] = nextInK
-			}
-
-		} else {
-			association = fmt.Sprintf("%s %s", enMap[sk].Name, enName)
-			gologger.Info().Msgf("%s", association)
-			// 增加数据，该类型下的全部企业数据
-			enLen := len(enInfo[sk])
-			for i, r := range enInfo[sk] {
-				gologger.Info().Msgf("[%d/%d]", i+1, enLen)
-				tPid := r.Get(pidName).String()
-				tName := r.Get(etNameJ).String()
-				if etNameFilter != nil && etNameFilter.MatchString(tName) {
-					gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
-					continue
-				}
-				dEnData := getCompanyInfoById(tPid, tName+" "+association, searchList, job)
-				// 把查询完的一个企业按类别存起来
-				for dk, dr := range dEnData {
-					enInfo[dk] = append(enInfo[dk], dr...)
-				}
-			}
-		}
-	}
-
-	return enInfo
+	j.wg.Wait()
+	j.closeCH()
+	return nil
 }
 
-// getCompanyInfoById 获取公司的详细的信息
-func getCompanyInfoById(pid string, inFrom string, searchList []string, job _interface.ENScan) map[string][]gjson.Result {
+// getCompanyInfoById 获取公司的详细的信息，包含下属列表信息
+func (j *EnJob) getCompanyInfoById(pid string, searchList []string, ref string) map[string][]gjson.Result {
 	enData := make(map[string][]gjson.Result)
-	res, enMap := job.GetCompanyBaseInfoById(pid)
-	gologger.Info().Msgf("正在获取⌈%s⌋信息", res.Get(job.GetENMap()["enterprise_info"].Field[0]))
-	// 增加企业信息
-	enJsonTMP, _ := sjson.Set(res.Raw, "inFrom", inFrom)
-	enData["enterprise_info"] = append(enData["enterprise_info"], gjson.Parse(enJsonTMP))
+	// 获取公司基本信息
+	res, enMap := j.job.GetCompanyBaseInfoById(pid)
+	gologger.Info().Msgf("正在获取⌈%s⌋信息", res.Get(j.job.GetENMap()["enterprise_info"].Field[0]))
+	format, err := dataFormat(res, "enterprise_info", ref)
+	if err != nil {
+		gologger.Error().Msgf("格式化数据失败: %v", err)
+	}
+	enData["enterprise_info"] = append(enData["enterprise_info"], format)
 	// 适配风鸟
 	if res.Get("orderNo").String() != "" {
 		pid = res.Get("orderNo").String()
-		fmt.Println(pid)
 	}
 	// 批量获取信息
 	for _, sk := range searchList {
-		s := enMap[sk]
 		// 不支持这个搜索类型就跳过去
 		if _, ok := enMap[sk]; !ok {
 			continue
 		}
+		s := enMap[sk]
 		// 没有这个数据就跳过去，提高速度
 		if s.Total <= 0 || s.Api == "" {
-			gologger.Info().Str("type", sk).Msgf("GET ⌈%s⌋ 为空", s.Name)
+			gologger.Debug().Str("type", sk).Msgf("判定 ⌈%s⌋ 为空，自动跳过获取\n数量：%d\nAPI：%s", s.Name, s.Total, s.Api)
 			continue
 		}
-
-		// 判断结束调用获取数据接口
-		listData, err := job.GetEnInfoList(pid, enMap[sk])
+		listData, err := j.getInfoList(pid, s, sk, ref)
 		if err != nil {
-			gologger.Error().Msg(err.Error())
-		}
-
-		// 添加来源信息，并把信息存储到数据里面
-		for _, y := range listData {
-			valueTmp, _ := sjson.Set(y.Raw, "inFrom", inFrom)
-			gs := gjson.Parse(valueTmp)
-			enData[sk] = append(enData[sk], gs)
-		}
-		// 展示数据
-		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
-	}
-	return enData
-}
-
-// getAppById 直接使用关键词调用插件查询
-func getAppByKeyWord(keyWord string, searchList []string, app _interface.App) (enInfo map[string][]gjson.Result) {
-	enData := make(map[string][]gjson.Result)
-	enMap := app.GetENMap()
-	for _, sk := range searchList {
-		if _, ok := enMap[sk]; !ok {
+			gologger.Error().Msgf("尝试获取⌈%s⌋发生异常\n%v", s.Name, err)
 			continue
 		}
-		s := enMap[sk]
-		gologger.Info().Msgf("正在获取⌈%s⌋信息", s.Name)
-		listData := app.GetInfoList(keyWord, sk)
 		enData[sk] = append(enData[sk], listData...)
-		utils.TBS(s.KeyWord, s.Field, s.Name, listData)
-
 	}
+
+	// 实时存入一个查询的完整信息
+	j.dataCh <- enData
 	return enData
 }
 
-func getAppById(rdata map[string][]map[string]string, searchList []string, app _interface.App) (enInfo map[string][]gjson.Result) {
-	enData := make(map[string][]gjson.Result)
-	enMap := app.GetENMap()
-	for _, sk := range searchList {
-
-		if _, ok := enMap[sk]; !ok {
-			continue
-		}
-		s := enMap[sk]
-		var enList []string
-		// 获取需要的参数，比如企业名称、域名等
-		// 0和1分别表示 ENSMapLN 的 key 和 value，定位出需要的数据
-		// 暂时没遇到需要多种类型进行匹配的参数
-		ap := s.AppParams
-		for _, ens := range rdata[ap[0]] {
-			enList = append(enList, ens[ap[1]])
-		}
-		// 对获取的目标进行去重
-		utils.SetStr(enList)
-		gologger.Info().Msgf("共获取到【%d】条，开始执行插件获取信息", len(enList))
-		for i, v := range enList {
-			gologger.Info().Msgf("正在获取第【%d】条数据 【%s】", i+1, v)
-			listData := app.GetInfoList(v, sk)
-			enData[sk] = append(enData[sk], listData...)
-			utils.TBS(s.KeyWord, s.Field, s.Name, listData)
+// getInfoList 获取列表信息
+func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string) (resData []gjson.Result, err error) {
+	var listData []gjson.Result
+	gologger.Info().Msgf("正在获取 ⌈%s⌋\n", em.Name)
+	data, err := j.getInfoPage(pid, 1, em)
+	if err != nil {
+		// 如果第一页获取失败，就不继续了，判断直接失败
+		return resData, err
+	}
+	// 如果一页能获取完就不翻页了
+	if data.Size >= data.Total {
+		listData = data.Data
+	} else {
+		pages := int((data.Total + data.Size - 1) / data.Size)
+		for i := 2; i <= pages; i++ {
+			gologger.Info().Msgf("正在获取 ⌈%s⌋ 第⌈%d/%d⌋页\n", em.Name, i, pages)
+			d, e := j.getInfoPage(pid, i, em)
+			if e != nil {
+				// TODO 这里后续考虑加入重试机制，或者是等任务跑完可以再次尝试
+				gologger.Error().Msgf("GET ⌈%s⌋ 第⌈%d⌋页失败\n", em.Name, i)
+				continue
+			}
+			listData = append(listData, d.Data...)
 		}
 	}
-	return enData
+	if len(listData) == 0 {
+		return resData, err
+	}
+	for _, y := range listData {
+		d, e := dataFormat(y, sk, ref)
+		if e != nil {
+			gologger.Error().Msgf("格式化数据失败: %v", err)
+		}
+		resData = append(resData, d)
+	}
+
+	// 展示数据
+	utils.TBS(em.KeyWord, em.Field, em.Name, resData)
+	return resData, err
+}
+
+// processTask 处理企业关系任务，进行关联查询
+func (j *EnJob) processTask(task DeepSearchTask) {
+	gologger.Info().Msgf("【%d,%d】正在获取⌈%s⌋信息，关联原因 %s", j.processed, j.total, task.Name, task.Ref)
+	data := j.getCompanyInfoById(task.Pid, task.SearchList, task.Ref)
+	j.wg.Done()
+	// 如果已经到了对应层级就不需要跑了
+	if task.Deep >= j.job.GetEnsD().Op.Deep {
+		return
+	}
+	gologger.Info().Msgf("⌈%s⌋深度搜索到第⌈%d⌋层", task.Name, task.Deep)
+	// 根据返回结果继续筛选进行关联
+	dps := j.getDPS(data[task.SK], task.Name, task.Deep+1, j.job.GetENMap(), task.SK)
+	for _, dp := range dps {
+		j.AddTask(DeepSearchTask{
+			dp,
+			task.SearchList,
+		})
+	}
+}
+
+// getDPS 根据List和规则筛选需要深度搜索的规则
+func (j *EnJob) getDPS(list []gjson.Result, ref string, deep int, ems map[string]*common.EnsGo, sk string) (dpList []common.DPS) {
+	op := j.job.GetEnsD().Op
+	if op.Deep <= 1 {
+		return
+	}
+	// 前置判断
+	if len(list) == 0 {
+		return
+	}
+	// 跳过非深度搜索字段
+	if !utils.IsInList(sk, common.DeepSearch) {
+		return
+	}
+	// 初始化判断变量
+
+	em := ems[sk]
+	nPid := em.Field[len(em.Field)-2]
+	nEnName := em.Field[0]
+	nStatus := em.Field[2]
+	nScale := em.Field[3]
+	// 初始化关联原因
+	association := fmt.Sprintf("%s %s", em.Name, ref)
+	gologger.Info().Msgf("%s", association)
+	// 增加数据，该类型下的全部企业数据
+	for _, r := range list {
+		// 如果不深度搜索分支机构就跳过
+		if sk == "branch" && !op.IsSearchBranch {
+			continue
+		}
+		tName := r.Get(nEnName).String()
+		// 正则过滤器匹配
+		if op.NameFilterRegexp != nil && op.NameFilterRegexp.MatchString(tName) {
+			gologger.Info().Msgf("根据过滤器跳过 [%s]", tName)
+			continue
+		}
+		// 判断企业状态
+		tStatus := r.Get(nStatus).String()
+		if utils.IsInList(tStatus, common.AbnormalStatus) {
+			gologger.Info().Msgf("根据状态跳过[%s]的企业[%s] ", tStatus, tName)
+			continue
+		}
+		// 判断计算投资比例
+		if sk == "invest" {
+			investNum := utils.FormatInvest(r.Get(nScale).String())
+			if investNum < op.InvestNum {
+				continue
+			}
+			association = fmt.Sprintf("%s ⌈%d⌋级投资⌈%.2f%%⌋-%s", tName, deep, investNum, ref)
+		}
+		// 关联返回企业的DPS数据
+		gologger.Debug().Msgf("关联⌈%s⌋企业信息，关联原因 %s", tName, association)
+		pid := r.Get(nPid).String()
+		dpList = append(dpList, common.DPS{
+			Name: tName,
+			Pid:  pid,
+			Ref:  association,
+			Deep: deep,
+			SK:   sk,
+		})
+	}
+	return dpList
+}
+
+func (q *ESJob) InfoToMap(j *EnJob, ref string) (res map[string][]map[string]string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	gologger.Debug().Msgf("InfoToMap\nReceived data: %v\n", j.data)
+	res = common.InfoToMap(j.data, j.getENMap(), ref)
+	j.data = map[string][]gjson.Result{}
+	return res
+}
+
+// ListDataFormat 对list数据进行格式化处理
+func dataFormat(data gjson.Result, typ string, ref string) (res gjson.Result, e error) {
+	// 对这条数据加入关联原因，为什么会关联到这个数
+	valueTmp, err := sjson.Set(data.Raw, "ref", ref)
+	if err != nil {
+		return res, err
+	}
+	// 对其他特殊渠道信息进行处理
+	if typ == "icp" {
+		// TODO 需要完善下针对多个域名在一行的情况，根据，分隔
+	}
+	// 处理完成恢复返回
+	res = gjson.Parse(valueTmp)
+
+	return res, nil
 }

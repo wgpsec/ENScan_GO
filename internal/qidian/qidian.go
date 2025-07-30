@@ -41,15 +41,12 @@ func (h *QD) GetEnsD() common.ENsD {
 	ensD := common.ENsD{Name: h.Options.KeyWord, Pid: h.Options.CompanyID}
 	return ensD
 }
+
+func (h *QD) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	return info, err
+}
 func (h *QD) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*common.EnsGo) {
 	// 获取的格式不太好写，先放在这了，感兴趣的可以提PR
 	gologger.Error().Msgf("【企典】功能尚未开发，感兴趣的师傅可以提交PR~")
 	return gjson.Result{}, getENMap()
-}
-func (h *QD) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := getInfoList(pid, enMap.Api, h.Options)
-	return listData, nil
-}
-func getInfoList(pid string, api string, op *common.ENOptions) []gjson.Result {
-	return []gjson.Result{}
 }

@@ -91,54 +91,37 @@ func (h *AQC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 	return res, ensInfoMap
 }
 
-func (h *AQC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := h.getInfoList(pid, enMap.Api, h.Options)
-	return listData, nil
-}
-
-// getInfoList 获取信息列表
-func (h *AQC) getInfoList(pid string, types string, options *common.ENOptions) []gjson.Result {
-	urls := "https://aiqicha.baidu.com/" + types + "?pid=" + pid
+// GetInfoByPage 分页获取信息
+func (h *AQC) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	urls := "https://aiqicha.baidu.com/" + em.Api + "?size=10&pid=" + pid + "&p=" + strconv.Itoa(page)
 	content := h.req(urls)
-	var listData []gjson.Result
-	if gjson.Get(content, "status").String() == "0" {
-		data := gjson.Get(content, "data")
-		// 判断投资关系一个获取的特殊值
-		if types == "relations/relationalMapAjax" {
-			data = gjson.Get(content, "data.investRecordData")
-		}
-
-		//判断是否多页，遍历获取所有数据
-		pageCount := data.Get("pageCount").Int()
-		if pageCount > 1 {
-			for i := 1; int(pageCount) >= i; i++ {
-				gologger.Info().Msgf("当前：%s,%d\n", types, i)
-				reqUrls := urls + "&p=" + strconv.Itoa(i)
-				content = h.req(reqUrls)
-				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
-			}
-		} else {
-			listData = data.Get("list").Array()
-		}
-
-		// 处理下ICP备案把他换成多行
-		if types == "detail/icpinfoAjax" {
-			var tmp []gjson.Result
-			for _, y := range listData {
-				for _, o := range y.Get("domain").Array() {
-					valueTmp, _ := sjson.Set(y.Raw, "domain", o.String())
-					tmpHomeSite := y.Get("homeSite").Array()
-					tmpStr := ""
-					if len(tmpHomeSite) > 0 {
-						tmpStr = tmpHomeSite[0].String()
-					}
-					valueTmp, _ = sjson.Set(valueTmp, "homeSite", tmpStr)
-					tmp = append(tmp, gjson.Parse(valueTmp))
-				}
-			}
-			listData = tmp
-		}
+	data := gjson.Get(content, "data")
+	// 判断投资关系一个获取的特殊值
+	if em.Api == "relations/relationalMapAjax" {
+		data = gjson.Get(content, "data.investRecordData")
 	}
-	return listData
-
+	listData := data.Get("list").Array()
+	// 处理下ICP备案把他换成多行
+	if em.Api == "detail/icpinfoAjax" {
+		var tmp []gjson.Result
+		for _, y := range listData {
+			for _, o := range y.Get("domain").Array() {
+				valueTmp, _ := sjson.Set(y.Raw, "domain", o.String())
+				tmpHomeSite := y.Get("homeSite").Array()
+				tmpStr := ""
+				if len(tmpHomeSite) > 0 {
+					tmpStr = tmpHomeSite[0].String()
+				}
+				valueTmp, _ = sjson.Set(valueTmp, "homeSite", tmpStr)
+				tmp = append(tmp, gjson.Parse(valueTmp))
+			}
+		}
+		listData = tmp
+	}
+	info = common.InfoPage{
+		Size:  data.Get("size").Int(),
+		Total: data.Get("total").Int(),
+		Data:  listData,
+	}
+	return info, err
 }

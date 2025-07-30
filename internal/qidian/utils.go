@@ -13,7 +13,7 @@ func (h *QD) req(url string, data string) string {
 		"User-Agent":   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36 Edg/98.0.1108.43",
 		"Accept":       "text/html, application/xhtml+xml, image/jxr, */*",
 		"Content-Type": "application/json;charset=UTF-8",
-		"Cookie":       h.Options.ENConfig.Cookies.Qidian,
+		"Cookie":       h.Options.GetCookie("qd"),
 		"Referer":      "https://www.dingtalk.com/",
 	}, h.Options)
 	if data == "" {
@@ -122,7 +122,7 @@ func getENMap() map[string]*common.EnsGo {
 
 	for k, _ := range resEnsMap {
 		resEnsMap[k].KeyWord = append(resEnsMap[k].KeyWord, "信息关联")
-		resEnsMap[k].Field = append(resEnsMap[k].Field, "inFrom")
+		resEnsMap[k].Field = append(resEnsMap[k].Field, "ref")
 	}
 	return resEnsMap
 }

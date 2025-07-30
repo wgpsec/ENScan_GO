@@ -1,12 +1,11 @@
 package common
 
 import (
-	"path/filepath"
-	"time"
-
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common/utils"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"path/filepath"
+	"regexp"
+	"time"
 )
 
 var (
@@ -18,41 +17,55 @@ var (
 )
 
 type ENOptions struct {
-	KeyWord        string // Keyword of Search
-	CompanyID      string // Company ID
-	GroupID        string // Company ID
-	InputFile      string // Scan Input File
-	Output         string
-	ScanType       string
-	Proxy          string
-	ISKeyPid       bool
-	IsGroup        bool
-	IsGetBranch    bool
-	IsSearchBranch bool
-	InvestNum      float64
-	DelayTime      int
-	DelayMaxTime   int64
-	TimeOut        int
-	GetFlags       string
-	Version        bool
-	IsHold         bool
-	IsSupplier     bool
-	IsShow         bool
-	GetField       []string
-	GetType        []string
-	IsDebug        bool
-	IsJsonOutput   bool
-	Deep           int
-	UPOutFile      string
-	IsMergeOut     bool   //聚合
-	IsNoMerge      bool   //聚合
-	OutPutType     string // 导出文件类型
-	IsApiMode      bool
-	IsMCPServer    bool
-	IsPlugins      bool // 是否作为后置插件查询
-	IsFast         bool // 是否快速查询
-	ENConfig       *ENConfig
-	BranchFilter   string
+	KeyWord          string // Keyword of Search
+	CompanyID        string // Company ID
+	GroupID          string // Company ID
+	InputFile        string // Scan Input File
+	Output           string
+	ScanType         string
+	Proxy            string
+	ISKeyPid         bool
+	IsGroup          bool
+	IsGetBranch      bool
+	IsSearchBranch   bool
+	InvestNum        float64
+	DelayTime        int
+	DelayMaxTime     int64
+	TimeOut          int
+	GetFlags         string
+	Version          bool
+	IsHold           bool
+	IsSupplier       bool
+	IsShow           bool
+	GetField         []string
+	GetType          []string
+	IsDebug          bool
+	IsJsonOutput     bool
+	Deep             int
+	IsMergeOut       bool   //聚合
+	IsNoMerge        bool   //聚合
+	OutPutType       string // 导出文件类型
+	IsApiMode        bool
+	IsMCPServer      bool
+	IsPlugins        bool // 是否作为后置插件查询
+	IsFast           bool // 是否快速查询
+	ENConfig         *ENConfig
+	BranchFilter     string
+	NameFilterRegexp *regexp.Regexp
+}
+
+// ENSearch 搜索必要的参数
+// 暂时没想好如何使用，尤其是在多进程情况下
+type ENSearch struct {
+	KeyWord          string // Keyword of Search
+	GetField         []string
+	GetType          []string
+	IsGetBranch      bool
+	NameFilterRegexp *regexp.Regexp
+	InvestNum        float64
+	IsHold           bool
+	IsSupplier       bool
+	Deep             int
 }
 
 // EnsGo EnScan 接口请求通用格式接口
@@ -83,6 +96,24 @@ type ENsD struct {
 	Op      *ENOptions
 }
 
+type InfoPage struct {
+	Total   int64
+	Page    int64
+	Size    int64
+	HasNext bool
+	Data    []gjson.Result
+}
+
+// DPS ENScan深度搜索包
+type DPS struct {
+	Name       string   `json:"name"`        // 企业名称
+	Pid        string   `json:"pid"`         // 企业ID
+	Ref        string   `json:"ref"`         // 关联原因
+	Deep       int      `json:"deep"`        // 深度
+	SK         string   `json:"type"`        // 搜索类型
+	SearchList []string `json:"search_list"` // 深度搜索列表
+}
+
 func (h *ENOptions) GetDelayRTime() int64 {
 	if h.DelayTime == -1 {
 		return utils.RangeRand(1, 5)
@@ -98,8 +129,29 @@ func (h *ENOptions) GetENConfig() *ENConfig {
 	return h.ENConfig
 }
 
+func (h *ENOptions) GetCookie(tpy string) (b string) {
+	c := h.ENConfig.Cookies
+	switch tpy {
+	case "aqc":
+		b = c.Aiqicha
+	case "tyc":
+		b = c.Tianyancha
+	case "rb":
+		b = c.RiskBird
+	case "qcc":
+		b = c.Qcc
+	case "xlb":
+		b = c.Xlb
+	case "kc":
+		b = c.KuaiCha
+	case "qimai":
+		b = c.QiMai
+	}
+	return b
+
+}
+
 type EnInfos struct {
-	Id          primitive.ObjectID `bson:"_id"`
 	Search      string
 	Name        string
 	Pid         string
@@ -118,12 +170,15 @@ type EnInfos struct {
 	EnInfo      []map[string]interface{}
 }
 
+var AbnormalStatus = []string{"注销", "吊销", "停业", "清算", "歇业", "关闭", "撤销", "迁出", "经营异常", "严重违法失信"}
+
 // DefaultAllInfos 默认收集信息列表
 var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", "wx_app", "copyright"}
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var DeepSearch = []string{"invest", "branch", "holds", "supplier"}
-var ENSTypes = []string{"aqc", "tyc", "kc", "miit", "tycapi", "rb"}
+var ENSTypes = []string{"aqc", "xlb", "qcc", "tyc", "kc", "tycapi", "rb"}
+var ENSApps = []string{"miit"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",
@@ -146,6 +201,7 @@ type ENConfig struct {
 	UserAgent string  `yaml:"user_agent"` // 自定义 User-Agent
 	Cookies   struct {
 		Aldzs       string `yaml:"aldzs"`
+		Xlb         string `yaml:"xlb"`
 		Aiqicha     string `yaml:"aiqicha"`
 		Qidian      string `yaml:"qidian"`
 		KuaiCha     string `yaml:"kuaicha"`
@@ -154,7 +210,10 @@ type ENConfig struct {
 		TycApiToken string `yaml:"tyc_api_token"`
 		RiskBird    string `yaml:"risk_bird"`
 		AuthToken   string `yaml:"auth_token"`
+		Qcc         string `yaml:"qcc"`
+		QccTid      string `yaml:"qcctid"`
 		QiMai       string `yaml:"qimai"`
+		ChinaZ      string `yaml:"chinaz"`
 	}
 	App struct {
 		MiitApi string `yaml:"miit_api"`

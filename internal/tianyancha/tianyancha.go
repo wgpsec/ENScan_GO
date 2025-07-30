@@ -74,60 +74,36 @@ func (h *TYC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 	return gjson.Parse(enJsonTMP), ensInfoMap
 }
 
-func (h *TYC) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := h.getInfoList(pid, enMap.Api, enMap, h.Options)
-	return listData, nil
-}
-
-func (h *TYC) getInfoList(pid string, types string, s *common.EnsGo, options *common.ENOptions) (listData []gjson.Result) {
-	data := ""
-	if len(s.SData) != 0 {
-		dataTmp, _ := json.Marshal(s.SData)
-		data = string(dataTmp)
-	}
-	urls := "https://capi.tianyancha.com/" + types + "?_=" + strconv.Itoa(int(time.Now().Unix()))
-
-	if data == "" {
-		urls += "&pageSize=20&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=1" + s.GsData
+func (h *TYC) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	sd := em.SData
+	urls := "https://capi.tianyancha.com/" + em.Api + "?_=" + strconv.Itoa(int(time.Now().Unix()))
+	if len(sd) > 0 {
+		sd["gid"] = pid
+		sd["pageSize"] = "100"
+		sd["pageNum"] = strconv.Itoa(page)
+		info.Page = 100
 	} else {
-		data, _ = sjson.Set(data, "gid", pid)
-		data, _ = sjson.Set(data, "pageSize", 100)
-		data, _ = sjson.Set(data, "pageNum", 1)
+		urls += "&pageSize=20&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=" + strconv.Itoa(page) + em.GsData
+		info.Page = 20
 	}
-	gologger.Debug().Msgf("[TYC] getInfoList %s\n", urls)
-	content := h.req(urls, data)
+	var m []byte
+	m, err = json.Marshal(sd)
+	if err != nil {
+		return info, err
+	}
+	content := h.req(urls, string(m))
 	if gjson.Get(content, "state").String() != "ok" {
-		gologger.Error().Msgf("[TYC] getInfoList %s\n", content)
-		return listData
+		return info, fmt.Errorf("查询出现错误 %s\n", content)
 	}
-	pageCount := 0
 	pList := []string{"itemTotal", "count", "total", "pageBean.total"}
 	for _, k := range gjson.GetMany(gjson.Get(content, "data").Raw, pList...) {
 		if k.Int() != 0 {
-			pageCount = int(k.Int())
+			info.Total = k.Int()
 		}
 	}
-	pats := "data." + s.Rf
-
-	listData = gjson.Get(content, pats).Array()
-	if pageCount > 100 {
-		urls = strings.ReplaceAll(urls, "&pageNum=1", "")
-		for i := 2; int(pageCount/100) >= i-1; i++ {
-			gologger.Info().Msgf("当前：%s,%d\n", types, i)
-			reqUrls := urls
-			if data == "" {
-				reqUrls = urls + "&pageNum=" + strconv.Itoa(i)
-			} else {
-				data, _ = sjson.Set(data, "pageNum", i)
-			}
-
-			time.Sleep(time.Duration(options.GetDelayRTime()) * time.Second)
-			content = h.req(reqUrls, data)
-			listData = append(listData, gjson.Get(content, pats).Array()...)
-		}
-	}
-	return listData
-
+	pats := "data." + em.Rf
+	info.Data = gjson.Get(content, pats).Array()
+	return info, err
 }
 
 // searchBaseInfo 获取基本信息（此操作容易触发验证）

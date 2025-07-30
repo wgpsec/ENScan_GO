@@ -52,44 +52,30 @@ func (h *RB) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*commo
 	return detailRes, ensInfoMap
 }
 
-func (h *RB) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := h.getInfoList(pid, enMap)
-	return listData, nil
-}
-
-func (h *RB) getInfoList(eid string, s *common.EnsGo) (listData []gjson.Result) {
+func (h *RB) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
 	urls := "https://www.riskbird.com/riskbird-api/companyInfo/list"
 	li := map[string]string{
 		"filterCnd":   "1",
-		"page":        "1",
+		"page":        strconv.Itoa(page),
 		"size":        "100",
-		"orderNo":     eid,
-		"extractType": s.Api,
+		"orderNo":     pid,
+		"extractType": em.Api,
 		"sortField":   "",
 	}
 	marshal, err := json.Marshal(li)
 	if err != nil {
-		gologger.Error().Msgf("[RB]查询数据处理操作失败 %s", err.Error())
-		return listData
+		return info, err
 	}
-	data := string(marshal)
-	gologger.Debug().Msgf("[RB] getInfoList %s\n", urls)
-	content := gjson.Parse(h.req(urls, data))
+	content := gjson.Parse(h.req(urls, string(marshal)))
 	if content.Get("code").String() != "20000" {
-		gologger.Error().Msgf("[RB] getInfoList %s\n", content.Get("msg"))
-		return listData
+		return info, fmt.Errorf("【RB】获取数据失败 %s", content.Get("msg"))
 	}
-	listData = content.Get("data.apiData").Array()
-	pc := content.Get("data.totalCount").Int()
-	if pc > 100 {
-		for i := 2; i <= int(pc/100+1); i++ {
-			li["page"] = strconv.Itoa(i)
-			marshal, err = json.Marshal(li)
-			data = string(marshal)
-			listData = append(listData, gjson.Get(h.req(urls, data), "data.totalCount").Array()...)
-		}
+	info = common.InfoPage{
+		Size:  100,
+		Total: content.Get("data.totalCount").Int(),
+		Data:  content.Get("data.apiData").Array(),
 	}
-	return listData
+	return info, err
 }
 
 func (h *RB) searchBaseInfo(pid string) (result gjson.Result, enBaseInfo gjson.Result) {

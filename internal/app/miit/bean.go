@@ -45,7 +45,8 @@ func getENMap() map[string]*common.EnsGo {
 	return ensInfoMap
 }
 
-func getReq(url string, data string, options *common.ENOptions) string {
+func (h *Miit) getReq(url string, data string) string {
+	options := h.Options
 	client := req.C()
 	client.SetTLSFingerprintChrome()
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
@@ -78,7 +79,7 @@ func getReq(url string, data string, options *common.ENOptions) string {
 		}
 		gologger.Error().Msgf("【miit】请求发生错误， %s 10秒后重试\n%s\n", url, err)
 		time.Sleep(10 * time.Second)
-		return getReq(url, data, options)
+		return h.getReq(url, data)
 	}
 	if resp.IsSuccessState() {
 		return resp.String()

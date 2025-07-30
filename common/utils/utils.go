@@ -11,6 +11,7 @@ import (
 	"github.com/wgpsec/ENScan/common/gologger"
 	"math"
 	"math/big"
+	mrand "math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -94,6 +95,21 @@ func DelInList(target string, list []string) []string {
 		}
 	}
 	return result
+}
+func DelListInList(original []string, remove []string) []string {
+	removeMap := make(map[string]bool)
+	for _, v := range remove {
+		removeMap[v] = true
+	}
+
+	n := 0
+	for _, v := range original {
+		if !removeMap[v] {
+			original[n] = v
+			n++
+		}
+	}
+	return original[:n]
 }
 
 func ReadFileOutLine(filename string) []string {
@@ -198,7 +214,6 @@ func VerifyEmailFormat(email string) bool {
 
 // TBS 展示表格
 func TBS(h []string, ep []string, name string, data []gjson.Result) {
-	gologger.Info().Msgf(name)
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(h)
 	for _, v := range data {
@@ -212,6 +227,7 @@ func TBS(h []string, ep []string, name string, data []gjson.Result) {
 		}
 		table.Append(tmp)
 	}
+	gologger.Info().Msgf(name)
 	table.Render()
 }
 
@@ -225,4 +241,30 @@ func MergeMap(s map[string][]map[string]string, list map[string][]map[string]str
 			list[k] = v
 		}
 	}
+}
+
+func fd(arr []string, target string) int {
+	// 查找目标字符串在切片中的首次出现位置
+	for i, word := range arr {
+		if word == target {
+			return i
+		}
+	}
+	return -1
+}
+
+// RandomElement 从一个字符串切片中随机返回一个元素。
+func RandomElement(c string) string {
+	slice := strings.Split(c, "|")
+	// 确保切片不为空，避免 panic
+	if len(slice) == 0 {
+		return ""
+	}
+	if len(slice) == 1 {
+		return slice[0]
+	}
+	// 生成一个在 [0, len(slice)) 范围内的随机索引
+	index := mrand.Intn(len(slice))
+	// 返回该索引对应的元素
+	return slice[index]
 }

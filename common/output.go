@@ -23,98 +23,102 @@ type ENSMap struct {
 }
 
 // ENSMapLN 最终统一导出格式
-var ENSMapLN = map[string]*ENSMap{
+var ENSMapLN = map[string]*EnsGo{
 	"enterprise_info": {
 		Name:    "企业信息",
-		JField:  []string{"name", "legal_person", "status", "phone", "email", "registered_capital", "incorporation_date", "address", "scope", "reg_code", "pid"},
+		Field:   []string{"name", "legal_person", "status", "phone", "email", "registered_capital", "incorporation_date", "address", "scope", "reg_code", "pid"},
 		KeyWord: []string{"企业名称", "法人代表", "经营状态", "电话", "邮箱", "注册资本", "成立日期", "注册地址", "经营范围", "统一社会信用代码", "PID"},
 	},
 	"icp": {
 		Name:    "ICP备案",
-		Only:    "domain",
-		JField:  []string{"website_name", "website", "domain", "icp", "company_name"},
+		Field:   []string{"website_name", "website", "domain", "icp", "company_name"},
 		KeyWord: []string{"网站名称", "网址", "域名", "网站备案/许可证号", "公司名称"},
 	},
 	"wx_app": {
 		Name:    "微信小程序",
-		JField:  []string{"name", "category", "logo", "qrcode", "read_num"},
+		Field:   []string{"name", "category", "logo", "qrcode", "read_num"},
 		KeyWord: []string{"名称", "分类", "头像", "二维码", "阅读量"},
 	},
 	"wechat": {
 		Name:    "微信公众号",
-		JField:  []string{"name", "wechat_id", "description", "qrcode", "avatar"},
+		Field:   []string{"name", "wechat_id", "description", "qrcode", "avatar"},
 		KeyWord: []string{"名称", "ID", "简介", "二维码", "头像"},
 	},
 	"weibo": {
 		Name:    "微博",
-		JField:  []string{"name", "profile_url", "description", "avatar"},
+		Field:   []string{"name", "profile_url", "description", "avatar"},
 		KeyWord: []string{"微博昵称", "链接", "简介", "头像"},
 	},
 	"supplier": {
 		Name:    "供应商",
-		JField:  []string{"name", "scale", "amount", "report_time", "data_source", "relation", "pid"},
+		Field:   []string{"name", "scale", "amount", "report_time", "data_source", "relation", "pid"},
 		KeyWord: []string{"名称", "金额占比", "金额", "报告期/公开时间", "数据来源", "关联关系", "PID"},
 	},
 	"job": {
 		Name:    "招聘",
-		JField:  []string{"name", "education", "location", "publish_time", "salary"},
+		Field:   []string{"name", "education", "location", "publish_time", "salary"},
 		KeyWord: []string{"招聘职位", "学历", "办公地点", "发布日期", "薪资"},
 	},
 	"invest": {
 		Name:    "投资",
-		JField:  []string{"name", "legal_person", "status", "scale", "pid"},
+		Field:   []string{"name", "legal_person", "status", "scale", "pid"},
 		KeyWord: []string{"企业名称", "法人", "状态", "投资比例", "PID"},
 	},
 	"branch": {
 		Name:    "分支机构",
-		JField:  []string{"name", "legal_person", "status", "pid"},
+		Field:   []string{"name", "legal_person", "status", "pid"},
 		KeyWord: []string{"企业名称", "法人", "状态", "PID"},
 	},
 	"holds": {
 		Name:    "控股企业",
-		JField:  []string{"name", "legal_person", "status", "scale", "level", "pid"},
+		Field:   []string{"name", "legal_person", "status", "scale", "level", "pid"},
 		KeyWord: []string{"企业名称", "法人", "状态", "投资比例", "持股层级", "PID"},
 	},
 	"app": {
 		Name:    "APP",
-		JField:  []string{"name", "category", "version", "update_at", "description", "logo", "bundle_id", "link", "market"},
+		Field:   []string{"name", "category", "version", "update_at", "description", "logo", "bundle_id", "link", "market"},
 		KeyWord: []string{"名称", "分类", "当前版本", "更新时间", "简介", "logo", "Bundle ID", "链接", "market"},
 	},
 	"copyright": {
 		Name:    "软件著作权",
-		JField:  []string{"name", "short_name", "category", "reg_num", "pub_type"},
+		Field:   []string{"name", "short_name", "category", "reg_num", "pub_type"},
 		KeyWord: []string{"软件全称", "软件简称", "分类", "登记号", "权利取得方式"},
 	},
 	"partner": {
 		Name:    "股东信息",
-		JField:  []string{"name", "scale", "reg_cap", "pid"},
+		Field:   []string{"name", "scale", "reg_cap", "pid"},
 		KeyWord: []string{"股东名称", "持股比例", "认缴出资金额", "PID"},
 	},
+}
+
+func DataToMap(info []gjson.Result, en *EnsGo, em *EnsGo, ext string) (res []map[string]string) {
+	for _, v := range info {
+		strData := make(map[string]string, len(em.Field)+1)
+		// 获取字段值并转换为字符串
+		for i, field := range em.Field {
+			// 判断是否最后一位字符，如果是那就是要加入from字段的
+			if i == len(em.Field)-1 && i >= len(en.Field) {
+				strData["ref"] = v.Get(field).String()
+			} else {
+				strData[en.Field[i]] = v.Get(field).String()
+			}
+		}
+		// 添加额外信息,用于后期展示
+		strData["extra"] = ext
+		res = append(res, strData)
+	}
+	return res
 }
 
 // InfoToMap 将输出的json转为统一map格式
 func InfoToMap(infos map[string][]gjson.Result, enMap map[string]*EnsGo, extraInfo string) (res map[string][]map[string]string) {
 	res = make(map[string][]map[string]string)
 	for k, info := range infos {
-		en := ENSMapLN[k].JField
-		// 分类信息
-		var data []map[string]string
-		for _, v := range info {
-			strData := make(map[string]string, len(enMap[k].Field)+1)
-			// 获取字段值并转换为字符串
-			for i, field := range enMap[k].Field {
-				if i == len(enMap[k].Field)-1 && i >= len(en) {
-					strData["from"] = v.Get(field).String()
-				} else {
-					strData[en[i]] = v.Get(field).String()
-				}
-			}
-			// 添加额外信息,用于后期展示
-			strData["extra"] = extraInfo
-			data = append(data, strData)
+		// 判断是否有这个类型，有时候数据可能会比较混杂
+		if _, ok := enMap[k]; !ok {
+			continue
 		}
-		// 信息全部存入
-		res[k] = data
+		res[k] = DataToMap(info, ENSMapLN[k], enMap[k], extraInfo)
 	}
 	return res
 }
@@ -122,10 +126,10 @@ func InfoToMap(infos map[string][]gjson.Result, enMap map[string]*EnsGo, extraIn
 func OutStrByEnInfo(data map[string][]map[string]string, types string) (str string) {
 	var builder strings.Builder
 	s := data[types]
-	em := ENSMapLN[types].JField
+	em := ENSMapLN[types].Field
 	for _, m := range s {
 		first := true
-		for _, key := range append(em, "from", "extra") {
+		for _, key := range append(em, "ref", "extra") {
 			if !first { // 如果不是第一个元素，则先写入逗号
 				builder.WriteString(",")
 			}
@@ -137,6 +141,23 @@ func OutStrByEnInfo(data map[string][]map[string]string, types string) (str stri
 
 	str = builder.String()
 	return str
+}
+
+func OriginalToMapList(infos []gjson.Result, em *EnsGo) (res []map[string]string) {
+	for _, info := range infos {
+		res = append(res, OriginalToMap(info, em))
+	}
+	return res
+}
+
+func OriginalToMap(info gjson.Result, em *EnsGo) (res map[string]string) {
+	// 获取字段值并转换为字符串
+	res = make(map[string]string)
+	for _, field := range em.Field {
+		// 判断是否最后一位字符，如果是那就是要加入from字段的
+		res[field] = info.Get(field).String()
+	}
+	return res
 }
 
 func OutFileByEnInfo(data map[string][]map[string]string, name string, types string, dir string) (err error) {
@@ -182,7 +203,7 @@ func OutFileByEnInfo(data map[string][]map[string]string, name string, types str
 			for i, m := range v {
 				if len(m) > 0 {
 					// 把信息全部提取出来，转为interface
-					for _, p := range append(em.JField, "from", "extra") {
+					for _, p := range append(em.Field, "ref", "extra") {
 						exData[i] = append(exData[i], m[p])
 					}
 				}

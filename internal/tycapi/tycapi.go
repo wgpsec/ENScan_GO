@@ -49,30 +49,15 @@ func (h *TycAPI) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*c
 	return gjson.Parse(enJsonTMP), ensInfoMap
 }
 
-func (h *TycAPI) GetEnInfoList(pid string, enMap *common.EnsGo) ([]gjson.Result, error) {
-	listData := h.getInfoList(pid, enMap)
-	return listData, nil
-}
-
-func (h *TycAPI) getInfoList(pid string, s *common.EnsGo) (listData []gjson.Result) {
-	uv := s.Api + "?keyword=" + pid
+func (h *TycAPI) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
+	uv := em.Api + "?keyword=" + pid + "&page=" + strconv.Itoa(page)
 	res := gjson.Get(h.req(uv), "result")
-	listData = res.Get("items").Array()
-	pt := res.Get("total").Int()
-	if pt <= 20 {
-		return listData
+	info = common.InfoPage{
+		Size:  20,
+		Total: res.Get("total").Int(),
+		Data:  res.Get("items").Array(),
 	}
-	gologger.Debug().Str("URL", uv).Str("pages", strconv.Itoa(int(pt))).Msgf("【TYC-API】 获取分页%s ", s.KeyWord)
-	pages := pt / 20
-	for i := 2; i <= int(pages); i++ {
-		gologger.Info().Msgf("【TYC-API】 正在分页获取【%s】 %d/%d ", s.KeyWord, i, pages)
-		gologger.Debug().Str("page", strconv.Itoa(i)).Msgf("获取分页%s ", s.KeyWord)
-		u := uv + "&page=" + strconv.Itoa(i)
-		res = gjson.Get(h.req(u), "result")
-		listData = append(listData, res.Get("items").Array()...)
-	}
-
-	return listData
+	return info, err
 }
 
 func (h *TycAPI) getInfo(pid string, s *common.EnsGo) (ef map[string][]gjson.Result) {
