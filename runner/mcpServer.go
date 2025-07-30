@@ -7,6 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
+	"github.com/wgpsec/ENScan/common/utils"
 	"golang.org/x/net/context"
 	"log"
 	"strconv"
@@ -179,9 +180,14 @@ func McpServer(options *common.ENOptions) {
 		),
 	), getInfoByKeyword(enTask))
 	enTask.StartENWorkers()
-	sseServer := server.NewSSEServer(s, server.WithBaseURL("http://localhost:8080"))
-	gologger.Info().Msgf("SSE server listening on :8080")
-	if err := sseServer.Start(":8080"); err != nil {
+	sseServer := server.NewSSEServer(s, server.WithBaseURL(options.ENConfig.Api.Mcp))
+	port, err := utils.ExtractPortString(options.ENConfig.Api.Mcp)
+	if err != nil {
+		gologger.Error().Msgf("MCP服务启动失败！")
+		gologger.Fatal().Msgf(err.Error())
+	}
+	gologger.Info().Msgf("SSE server listening on :" + port)
+	if err := sseServer.Start(":" + port); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }

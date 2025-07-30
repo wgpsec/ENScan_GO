@@ -199,7 +199,11 @@ var ScanTypeKeys = map[string]string{
 type ENConfig struct {
 	Version   float64 `yaml:"version"`
 	UserAgent string  `yaml:"user_agent"` // 自定义 User-Agent
-	Cookies   struct {
+	Api       struct {
+		Api string `yaml:"api"`
+		Mcp string `yaml:"mcp"`
+	}
+	Cookies struct {
 		Aldzs       string `yaml:"aldzs"`
 		Xlb         string `yaml:"xlb"`
 		Aiqicha     string `yaml:"aiqicha"`
@@ -221,11 +225,14 @@ type ENConfig struct {
 }
 
 var cfgYName = filepath.Join(utils.GetConfigPath(), "config.yaml")
-var cfgYV = 0.6
-var configYaml = `version: 0.6
+var cfgYV = 0.7
+var configYaml = `version: 0.7
 user_agent: ""			# 自定义 User-Agent（可设置为获取Cookie的浏览器）
 app:
   miit_api: ''          # HG-ha的ICP_Query (非狼组维护 https://github.com/HG-ha/ICP_Query) 
+api:
+  api: ':31000'    # API监听地址
+  mcp: 'http://localhost:8080'    # MCP SSE监听地址
 cookies:
   aiqicha: ''           # 爱企查   Cookie
   tianyancha: ''        # 天眼查   Cookie

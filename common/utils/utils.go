@@ -12,6 +12,8 @@ import (
 	"math"
 	"math/big"
 	mrand "math/rand"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -267,4 +269,19 @@ func RandomElement(c string) string {
 	index := mrand.Intn(len(slice))
 	// 返回该索引对应的元素
 	return slice[index]
+}
+
+func ExtractPortString(rawURL string) (string, error) {
+	// 解析 URL
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("无效的 URL: %v", err)
+	}
+	// 提取 host:port 部分
+	_, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return "", fmt.Errorf("未指定端口且协议 %q 无默认端口", u.Scheme)
+	}
+
+	return port, nil // port 已经是字符串
 }

@@ -40,7 +40,6 @@ func api(options *common.ENOptions) {
 			if data, ok := enApiData[w.OrgName]; !ok || w.IsRefresh {
 				enApiStatus[w.OrgName] = true
 				rdata = enTask.getInfoByApi(w)
-				fmt.Println(rdata)
 				message = "查询成功"
 				enApiStatus[w.OrgName] = false
 				enApiData[w.OrgName] = rdata
@@ -88,7 +87,7 @@ func api(options *common.ENOptions) {
 
 	}
 	enTask.StartENWorkers()
-	err := r.Run(":31000")
+	err := r.Run(options.ENConfig.Api.Api)
 	if err != nil {
 		gologger.Error().Msgf("API服务启动失败！")
 		gologger.Fatal().Msgf(err.Error())
