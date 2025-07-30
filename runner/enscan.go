@@ -110,9 +110,7 @@ func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string)
 		return resData, err
 	}
 	// 如果一页能获取完就不翻页了
-	if data.Size >= data.Total {
-		listData = data.Data
-	} else {
+	if data.Size < data.Total {
 		pages := int((data.Total + data.Size - 1) / data.Size)
 		for i := 2; i <= pages; i++ {
 			gologger.Info().Msgf("正在获取 ⌈%s⌋ 第⌈%d/%d⌋页\n", em.Name, i, pages)
