@@ -1,8 +1,6 @@
 module github.com/wgpsec/ENScan
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.23.0
 
 require (
 	github.com/antchfx/htmlquery v1.2.4

@@ -179,12 +179,32 @@ func (q *ESJob) processTask(task ENJobTask) {
 			} else {
 				pid, err = enJob.SearchByKeyWord(keyword)
 				if err != nil {
-					gologger.Error().Msg(err.Error())
+					gologger.Error().Msgf("搜索关键词失败：%s，跳过该任务", err.Error())
+					// 即使搜索失败，也要确保任务能够继续
+					enJob.enWg.Done() // 先调用Done()，然后再Wait()
+					enJob.enWg.Wait()
+					// 创建一个空的结果数据，避免程序卡住
+					rdata := map[string][]map[string]string{
+						"enterprise_info": {},
+					}
+					q.ch <- rdata
+					q.wg.Done()
+					return
 				}
 			}
 			// 获取企业信息，通过查询到的信息
 			if err = enJob.getInfoById(pid, q.op.GetField); err != nil {
-				gologger.Error().Msgf("获取企业信息失败：%s", err.Error())
+				gologger.Error().Msgf("获取企业信息失败：%s，跳过该任务", err.Error())
+				// 即使获取企业信息失败，也要确保任务能够继续
+				enJob.enWg.Done() // 先调用Done()，然后再Wait()
+				enJob.enWg.Wait()
+				// 创建一个空的结果数据，避免程序卡住
+				rdata := map[string][]map[string]string{
+					"enterprise_info": {},
+				}
+				q.ch <- rdata
+				q.wg.Done()
+				return
 			}
 		}
 	}
