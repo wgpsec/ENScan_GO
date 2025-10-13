@@ -13,16 +13,30 @@ import (
 // SearchByKeyWord 根据关键词筛选公司
 func (j *EnJob) SearchByKeyWord(keyword string) (string, error) {
 	enList, err := j.job.AdvanceFilter(keyword)
-	enMap := j.job.GetENMap()["enterprise_info"]
 	if err != nil {
 		gologger.Error().Msg(err.Error())
 		return "", err
 	}
-	gologger.Info().Msgf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", keyword, len(enList))
+	
+	// 检查搜索结果是否为空
+	if len(enList) == 0 {
+		gologger.Error().Msgf("关键词：\"%s\" 未查询到任何结果", keyword)
+		return "", fmt.Errorf("关键词：\"%s\" 未查询到任何结果", keyword)
+	}
+	
+	enMap := j.job.GetENMap()["enterprise_info"]
+	gologger.Info().Msgf("关键词：\"%s\" 查询到 %d 个结果，默认选择第一个 \n", keyword, len(enList))
 	//展示结果
 	utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), "企业信息", enList)
 	// 选择第一个的PID
 	pid := enList[0].Get(enMap.Field[10]).String()
+	
+	// 检查PID是否为空
+	if pid == "" {
+		gologger.Error().Msgf("关键词：\"%s\" 获取到的PID为空", keyword)
+		return "", fmt.Errorf("关键词：\"%s\" 获取到的PID为空", keyword)
+	}
+	
 	gologger.Debug().Str("PID", pid).Msgf("搜索")
 	return pid, nil
 }
@@ -117,7 +131,6 @@ func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string)
 			gologger.Info().Msgf("正在获取 ⌈%s⌋ 第⌈%d/%d⌋页\n", em.Name, i, pages)
 			d, e := j.getInfoPage(pid, i, em)
 			if e != nil {
-				// TODO 这里后续考虑加入重试机制，或者是等任务跑完可以再次尝试
 				gologger.Error().Msgf("GET ⌈%s⌋ 第⌈%d⌋页失败\n", em.Name, i)
 				continue
 			}
