@@ -3,14 +3,15 @@ package tianyancha
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/antchfx/htmlquery"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type TYC struct {
@@ -77,19 +78,19 @@ func (h *TYC) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*comm
 func (h *TYC) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
 	sd := em.SData
 	urls := "https://capi.tianyancha.com/" + em.Api + "?_=" + strconv.Itoa(int(time.Now().Unix()))
+	var m []byte
 	if len(sd) > 0 {
 		sd["gid"] = pid
 		sd["pageSize"] = "100"
 		sd["pageNum"] = strconv.Itoa(page)
 		info.Page = 100
+		m, err = json.Marshal(sd)
+		if err != nil {
+			return info, err
+		}
 	} else {
 		urls += "&pageSize=20&graphId=" + pid + "&id=" + pid + "&gid=" + pid + "&pageNum=" + strconv.Itoa(page) + em.GsData
 		info.Page = 20
-	}
-	var m []byte
-	m, err = json.Marshal(sd)
-	if err != nil {
-		return info, err
 	}
 	content := h.req(urls, string(m))
 	if gjson.Get(content, "state").String() != "ok" {
