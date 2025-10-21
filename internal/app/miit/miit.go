@@ -1,12 +1,13 @@
 package miit
 
 import (
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common"
-	"github.com/wgpsec/ENScan/common/gologger"
 	urlTool "net/url"
 	"strconv"
 	"time"
+
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common"
+	"github.com/wgpsec/ENScan/common/gologger"
 )
 
 type Miit struct {
@@ -26,7 +27,7 @@ func (h *Miit) GetInfoByPage(keyword string, page int, em *common.EnsGo) (info c
 	url := h.Options.ENConfig.App.MiitApi + "/query/" + em.Api + "?page=" + strconv.Itoa(page) + "&search=" + urlTool.QueryEscape(keyword)
 	content := h.getReq(url+"&page=1", "")
 	var listData []gjson.Result
-	data := gjson.Get(content, "data")
+	data := gjson.Get(content, "params")
 	listData = data.Get("list").Array()
 	info = common.InfoPage{
 		Total:   data.Get("total").Int(),
@@ -41,7 +42,7 @@ func (h *Miit) getInfoList(keyword string, types string, options *common.ENOptio
 	url := options.ENConfig.App.MiitApi + "/query/" + types + "?page=1&search=" + urlTool.QueryEscape(keyword)
 	content := h.getReq(url+"&page=1", "")
 	var listData []gjson.Result
-	data := gjson.Get(content, "data")
+	data := gjson.Get(content, "params")
 	listData = data.Get("list").Array()
 	if data.Get("hasNextPage").Bool() {
 		for i := 2; int(data.Get("pages").Int()) >= i; i++ {
