@@ -1,12 +1,13 @@
 package tianyancha
 
 import (
+	"strings"
+	"time"
+
 	"github.com/antchfx/htmlquery"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"golang.org/x/net/html"
-	"strings"
-	"time"
 )
 
 func getENMap() map[string]*common.EnsGo {
@@ -150,6 +151,11 @@ func (h *TYC) req(url string, data string) string {
 		if strings.Contains(resp.String(), "\"message\":\"mustlogin\"") {
 			gologger.Error().Msgf("【TYC】需要登陆后尝试")
 		}
+		if strings.Contains(resp.String(), "账号存在风险") {
+			gologger.Error().Msgf("【TYC】账号存在风险需要认证，打开页面查看是否有提示人机验证，程序将在10秒后重试 %s \n", url)
+			time.Sleep(10 * time.Second)
+			return h.req(url, data)
+		}
 		return resp.String()
 	} else if resp.StatusCode == 403 {
 		gologger.Error().Msgf("【TYC】ip被禁止访问网站，请更换ip\n")
@@ -163,10 +169,14 @@ func (h *TYC) req(url string, data string) string {
 		gologger.Error().Msgf("【TYC】429请求被拦截，清打开链接滑动验证码，程序将在10秒后重试 %s \n", url)
 		time.Sleep(10 * time.Second)
 		return h.req(url, data)
+	} else if resp.StatusCode == 433 {
+		gologger.Error().Msgf("【TYC】433账号存在风险需要认证，打开页面查看是否有提示人机验证，程序将在10秒后重试 %s \n", url)
+		time.Sleep(10 * time.Second)
+		return h.req(url, data)
 	} else {
-		gologger.Error().Msgf("【TYC】未知错误 %s\n", resp.StatusCode)
-		gologger.Debug().Msgf("【TYC】\nURL:%s\nDATA:%s\n", url, data)
-		gologger.Debug().Msgf("【TYC】\n%s\n", resp.String())
+		gologger.Error().Msgf("【TYC】未知状态码：【%d】\n提交报错信息请打开DEBUG模式提交数据包\n", resp.StatusCode)
+		gologger.Debug().Msgf("【TYC】URL:%s\nDATA:%s\n", url, data)
+		gologger.Debug().Msgf("【TYC】\n返回数据包信息：%s\n", resp.String())
 	}
 	return ""
 }
