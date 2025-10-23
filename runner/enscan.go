@@ -17,26 +17,26 @@ func (j *EnJob) SearchByKeyWord(keyword string) (string, error) {
 		gologger.Error().Msg(err.Error())
 		return "", err
 	}
-	
+
 	// 检查搜索结果是否为空
 	if len(enList) == 0 {
 		gologger.Error().Msgf("关键词：\"%s\" 未查询到任何结果", keyword)
 		return "", fmt.Errorf("关键词：\"%s\" 未查询到任何结果", keyword)
 	}
-	
+
 	enMap := j.job.GetENMap()["enterprise_info"]
 	gologger.Info().Msgf("关键词：\"%s\" 查询到 %d 个结果，默认选择第一个 \n", keyword, len(enList))
 	//展示结果
 	utils.TBS(append(enMap.KeyWord[:3], "PID"), append(enMap.Field[:3], enMap.Field[10]), "企业信息", enList)
 	// 选择第一个的PID
 	pid := enList[0].Get(enMap.Field[10]).String()
-	
+
 	// 检查PID是否为空
 	if pid == "" {
 		gologger.Error().Msgf("关键词：\"%s\" 获取到的PID为空", keyword)
 		return "", fmt.Errorf("关键词：\"%s\" 获取到的PID为空", keyword)
 	}
-	
+
 	gologger.Debug().Str("PID", pid).Msgf("搜索")
 	return pid, nil
 }
@@ -124,6 +124,7 @@ func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string)
 		// 如果第一页获取失败，就不继续了，判断直接失败
 		return resData, err
 	}
+	listData = data.Data
 	// 如果一页能获取完就不翻页了
 	if data.Size < data.Total && data.Size > 0 {
 		pages := int((data.Total + data.Size - 1) / data.Size)
