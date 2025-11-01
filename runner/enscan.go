@@ -62,7 +62,8 @@ func (j *EnJob) getInfoById(pid string, searchList []string) error {
 		return nil
 	}
 	gologger.Info().Msgf("DPS长度：%d", len(dps))
-	j.newTaskQueue(len(dps) * 2)
+	// 这里不知道为什么要设置一个很大的队列长度，否则会卡死
+	j.newTaskQueue(999999)
 	j.StartWorkers()
 	for _, dp := range dps {
 		j.AddTask(DeepSearchTask{
