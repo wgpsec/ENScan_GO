@@ -46,8 +46,8 @@ type ENOptions struct {
 	IsNoMerge        bool   //聚合
 	OutPutType       string // 导出文件类型
 	IsApiMode        bool
-	IsMCPServer      bool
-	IsPlugins        bool // 是否作为后置插件查询
+	MCPServer        string // MCP模式运行地址，如 :8080 或 http://localhost:8080
+	IsPlugins        bool   // 是否作为后置插件查询
 	IsFast           bool // 是否快速查询
 	ENConfig         *ENConfig
 	BranchFilter     string

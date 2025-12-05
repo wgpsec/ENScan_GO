@@ -180,8 +180,20 @@ func McpServer(options *common.ENOptions) {
 		),
 	), getInfoByKeyword(enTask))
 	enTask.StartENWorkers()
-	sseServer := server.NewSSEServer(s, server.WithBaseURL(options.ENConfig.Api.Mcp))
-	port, err := utils.ExtractPortString(options.ENConfig.Api.Mcp)
+	
+	// 优先使用命令行参数，否则使用配置文件
+	mcpAddr := options.MCPServer
+	if mcpAddr == "" {
+		mcpAddr = options.ENConfig.Api.Mcp
+	}
+	
+	// 如果只提供了端口（如 :8080），则补全为完整URL
+	if len(mcpAddr) > 0 && mcpAddr[0] == ':' {
+		mcpAddr = "http://localhost" + mcpAddr
+	}
+	
+	sseServer := server.NewSSEServer(s, server.WithBaseURL(mcpAddr))
+	port, err := utils.ExtractPortString(mcpAddr)
 	if err != nil {
 		gologger.Error().Msgf("MCP服务启动失败！")
 		gologger.Fatal().Msgf(err.Error())
