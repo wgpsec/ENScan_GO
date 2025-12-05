@@ -116,7 +116,7 @@ func RunEnumeration(options *common.ENOptions) {
 
 	} else if options.IsApiMode {
 		api(options)
-	} else if options.MCPServer != "" {
+	} else if options.MCPServerSet {
 		McpServer(options)
 	} else {
 		esjob := NewENTaskQueue(1, options)
@@ -330,7 +330,7 @@ func (q *ESJob) StartENWorkers() {
 					gologger.Error().Msgf("保存缓存失败: %v", err)
 				}
 			case <-quitSig:
-				if !q.op.IsApiMode && q.op.MCPServer == "" {
+				if !q.op.IsApiMode && !q.op.MCPServerSet {
 					gologger.Error().Msgf("任务未完成退出，将自动保存过程文件！")
 					_ = q.OutFileByEnInfo("未完成任务结果")
 				}

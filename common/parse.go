@@ -54,7 +54,7 @@ func (op *ENOptions) Parse() {
 		gologger.Fatal().Msgf("配置文件当前[V%.1f] 程序需要[V%.1f] 不匹配，请备份配置文件重新运行-v\n", conf.Version, cfgYV)
 	}
 
-	if op.KeyWord == "" && op.CompanyID == "" && op.InputFile == "" && !op.IsApiMode && op.MCPServer == "" {
+	if op.KeyWord == "" && op.CompanyID == "" && op.InputFile == "" && !op.IsApiMode && !op.MCPServerSet {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}

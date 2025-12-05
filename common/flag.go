@@ -5,6 +5,38 @@ import (
 	"github.com/wgpsec/ENScan/common/gologger"
 )
 
+// mcpFlag is a custom flag type that supports optional values
+// When used as --mcp (without value), it will be set to "true"
+// When used as --mcp=:8080 or --mcp=http://..., it will be set to that value
+type mcpFlag struct {
+	value   string
+	changed bool
+}
+
+func (m *mcpFlag) String() string {
+	return m.value
+}
+
+func (m *mcpFlag) Set(s string) error {
+	// When IsBoolFlag returns true and flag is used without value,
+	// Go sets it to "true". We treat "true" as "use config default"
+	if s == "true" {
+		m.value = ""  // Empty means use config default
+	} else {
+		m.value = s
+	}
+	m.changed = true
+	return nil
+}
+
+func (m *mcpFlag) IsBoolFlag() bool {
+	return true
+}
+
+func (m *mcpFlag) Get() (string, bool) {
+	return m.value, m.changed
+}
+
 const banner = `
 
 ███████╗███╗   ██╗███████╗ ██████╗ █████╗ ███╗   ██╗
@@ -49,7 +81,11 @@ func Flag(Info *ENOptions) {
 	//其他设定
 	flag.BoolVar(&Info.IsGroup, "is-group", false, "查询关键词为集团")
 	flag.BoolVar(&Info.IsApiMode, "api", false, "API模式运行")
-	flag.StringVar(&Info.MCPServer, "mcp", "", "MCP模式运行，可指定监听地址，如 :8080 或 http://localhost:8080")
+	
+	// MCP flag with optional value support
+	mcpFlagVar := &mcpFlag{}
+	flag.Var(mcpFlagVar, "mcp", "MCP模式运行，可指定监听地址，如 :8080 或 http://localhost:8080，不指定则使用配置文件默认值")
+	
 	flag.BoolVar(&Info.ISKeyPid, "is-pid", false, "批量查询文件是否为公司PID")
 	flag.IntVar(&Info.DelayTime, "delay", 0, "每个请求延迟（S）-1为随机延迟1-5S")
 	flag.StringVar(&Info.Proxy, "proxy", "", "设置代理")
@@ -57,4 +93,7 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsNoMerge, "no-merge", false, "开启后查询文件将单独导出")
 	flag.BoolVar(&Info.Version, "v", false, "版本信息")
 	flag.Parse()
+	
+	// Extract MCP flag value after parsing
+	Info.MCPServer, Info.MCPServerSet = mcpFlagVar.Get()
 }
