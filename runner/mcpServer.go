@@ -3,14 +3,16 @@ package runner
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
 	"github.com/wgpsec/ENScan/common/utils"
 	"golang.org/x/net/context"
-	"log"
-	"strconv"
 )
 
 // getInfoPro 顾名思义，PRO方法
@@ -188,7 +190,7 @@ func McpServer(options *common.ENOptions) {
 	}
 	
 	// 如果只提供了端口（如 :8080），则补全为完整URL
-	if len(mcpAddr) > 0 && mcpAddr[0] == ':' {
+	if strings.HasPrefix(mcpAddr, ":") {
 		mcpAddr = "http://localhost" + mcpAddr
 	}
 	
