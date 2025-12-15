@@ -21,6 +21,11 @@ func (m *mcpFlag) String() string {
 }
 
 func (m *mcpFlag) Set(s string) error {
+	// Validate pointers before dereferencing
+	if m.serverAddr == nil || m.serverSet == nil {
+		return nil
+	}
+	
 	// When IsBoolFlag returns true and the flag is used without a value (e.g., --mcp alone),
 	// Go's flag parser calls Set with "true" as the value.
 	// We treat this special case as "use config default" by setting value to empty string.
