@@ -9,12 +9,15 @@ import (
 // When used as --mcp (without value), it will be set to "true"
 // When used as --mcp=:8080 or --mcp=http://..., it will be set to that value
 type mcpFlag struct {
-	value   string
-	changed bool
+	serverAddr *string
+	serverSet  *bool
 }
 
 func (m *mcpFlag) String() string {
-	return m.value
+	if m.serverAddr == nil {
+		return ""
+	}
+	return *m.serverAddr
 }
 
 func (m *mcpFlag) Set(s string) error {
@@ -23,20 +26,16 @@ func (m *mcpFlag) Set(s string) error {
 	// We treat this special case as "use config default" by setting value to empty string.
 	// For any other value (e.g., --mcp=:8080), we use that value directly.
 	if s == "true" {
-		m.value = ""  // Empty means use config default
+		*m.serverAddr = ""  // Empty means use config default
 	} else {
-		m.value = s
+		*m.serverAddr = s
 	}
-	m.changed = true
+	*m.serverSet = true
 	return nil
 }
 
 func (m *mcpFlag) IsBoolFlag() bool {
 	return true
-}
-
-func (m *mcpFlag) Get() (string, bool) {
-	return m.value, m.changed
 }
 
 const banner = `
@@ -83,11 +82,7 @@ func Flag(Info *ENOptions) {
 	//其他设定
 	flag.BoolVar(&Info.IsGroup, "is-group", false, "查询关键词为集团")
 	flag.BoolVar(&Info.IsApiMode, "api", false, "API模式运行")
-	
-	// MCP flag with optional value support
-	mcpFlagVar := &mcpFlag{}
-	flag.Var(mcpFlagVar, "mcp", "MCP模式运行。用法: --mcp (使用配置文件默认值), --mcp=:8080 (自定义端口), --mcp=http://localhost:8080 (完整地址)")
-	
+	flag.Var(&mcpFlag{serverAddr: &Info.MCPServer, serverSet: &Info.MCPServerSet}, "mcp", "MCP模式运行。用法: --mcp (使用配置文件默认值), --mcp=:8080 (自定义端口), --mcp=http://localhost:8080 (完整地址)")
 	flag.BoolVar(&Info.ISKeyPid, "is-pid", false, "批量查询文件是否为公司PID")
 	flag.IntVar(&Info.DelayTime, "delay", 0, "每个请求延迟（S）-1为随机延迟1-5S")
 	flag.StringVar(&Info.Proxy, "proxy", "", "设置代理")
@@ -95,7 +90,4 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsNoMerge, "no-merge", false, "开启后查询文件将单独导出")
 	flag.BoolVar(&Info.Version, "v", false, "版本信息")
 	flag.Parse()
-	
-	// Extract MCP flag value after parsing
-	Info.MCPServer, Info.MCPServerSet = mcpFlagVar.Get()
 }
