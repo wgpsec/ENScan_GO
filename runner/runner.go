@@ -157,7 +157,6 @@ func (q *ESJob) processTask(task ENJobTask) {
 		gologger.Error().Msgf("未找到 %s 任务模式", task.Typ)
 		// 如果既没有app也没有job，说明任务类型不支持，应该跳过
 		enJob.enWg.Done()
-		enJob.enWg.Wait()
 		// 创建一个空的结果数据，避免程序卡住
 		rdata := map[string][]map[string]string{
 			"enterprise_info": {},

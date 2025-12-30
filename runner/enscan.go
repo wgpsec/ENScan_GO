@@ -162,14 +162,15 @@ func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string)
 
 // processTask 处理企业关系任务，进行关联查询
 func (j *EnJob) processTask(task DeepSearchTask) {
-	gologger.Info().Msgf("【%d,%d】正在获取⌈%s⌋信息，关联原因 %s", j.processed, j.total, task.Name, task.Ref)
-	data := j.getCompanyInfoById(task.Pid, task.SearchList, task.Ref)
-	j.wg.Done()
 	// 如果job为nil，无法继续处理
 	if j.job == nil {
 		gologger.Error().Msgf("job is nil, cannot process task for %s", task.Name)
+		j.wg.Done()
 		return
 	}
+	gologger.Info().Msgf("【%d,%d】正在获取⌈%s⌋信息，关联原因 %s", j.processed, j.total, task.Name, task.Ref)
+	data := j.getCompanyInfoById(task.Pid, task.SearchList, task.Ref)
+	j.wg.Done()
 	// 如果已经到了对应层级就不需要跑了
 	if task.Deep >= j.job.GetEnsD().Op.Deep {
 		return
