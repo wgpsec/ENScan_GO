@@ -91,14 +91,17 @@ func (j *EnJob) startCH() {
 
 }
 func (j *EnJob) closeCH() {
-	close(j.dataCh)
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.taskCh != nil {
-		close(j.taskCh)
-	}
-	if j.Done != nil {
-		close(j.Done)
+	if !j.closed {
+		j.closed = true
+		close(j.dataCh)
+		if j.taskCh != nil {
+			close(j.taskCh)
+		}
+		if j.Done != nil {
+			close(j.Done)
+		}
 	}
 }
 
@@ -124,6 +127,11 @@ func (j *EnJob) newTaskQueue(capacity int) {
 	j.Done = make(chan struct{})
 }
 func (j *EnJob) reTaskQueue() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if j.closed {
+		return
+	}
 	for _, task := range *j.task {
 		j.taskCh <- task
 		j.wg.Add(1)
@@ -131,12 +139,15 @@ func (j *EnJob) reTaskQueue() {
 }
 
 func (q *EnJob) AddTask(task DeepSearchTask) {
-	q.taskCh <- task
 	q.mu.Lock()
 	defer q.mu.Unlock()
+	if q.closed {
+		return
+	}
 	*q.task = append(*q.task, task)
 	q.wg.Add(1)
 	q.total++
+	q.taskCh <- task
 }
 
 func (q *EnJob) StartWorkers() {
