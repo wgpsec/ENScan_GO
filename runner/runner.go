@@ -322,8 +322,6 @@ func (q *ESJob) StartENWorkers() {
 					q.mu.Lock()
 					for key, newResults := range data {
 						q.dt[key] = append(q.dt[key], newResults...)
-						// 实时去重，避免重复数据积累
-						q.dt[key] = utils.DeduplicateMapList(key, q.dt[key])
 					}
 					q.mu.Unlock()
 				}

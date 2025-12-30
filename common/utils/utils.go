@@ -294,8 +294,6 @@ func DeduplicateMapList(dataType string, data []map[string]string) []map[string]
 		return data
 	}
 
-	originalCount := len(data)
-
 	// 定义不同数据类型的唯一标识字段组合
 	var keyFields []string
 	switch dataType {
@@ -332,26 +330,25 @@ func DeduplicateMapList(dataType string, data []map[string]string) []map[string]
 	for _, item := range data {
 		// 生成唯一键
 		var keyParts []string
+		allEmpty := true
 		for _, field := range keyFields {
-			keyParts = append(keyParts, item[field])
+			value := item[field]
+			keyParts = append(keyParts, value)
+			if value != "" {
+				allEmpty = false
+			}
 		}
-		key := strings.Join(keyParts, "|")
-
-		// 如果key为空（所有字段都为空）或者已经见过，跳过
-		if key == strings.Repeat("|", len(keyFields)-1) {
+		
+		// 如果所有关键字段都为空，跳过该记录
+		if allEmpty {
 			continue
 		}
-
+		
+		key := strings.Join(keyParts, "|")
 		if !seen[key] {
 			seen[key] = true
 			result = append(result, item)
 		}
-	}
-
-	// 记录去重统计信息
-	duplicateCount := originalCount - len(result)
-	if duplicateCount > 0 {
-		gologger.Debug().Msgf("⌈%s⌋ 去重: 原始 %d 条，去重后 %d 条，移除重复 %d 条", dataType, originalCount, len(result), duplicateCount)
 	}
 
 	return result
