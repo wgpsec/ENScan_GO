@@ -136,8 +136,10 @@ func (j *EnJob) reTaskQueue() {
 	taskCh := j.taskCh
 	j.mu.Unlock()
 	
-	// Send to channel outside the lock to avoid deadlock
-	// Increment wg for each task as we send to avoid hanging if interrupted
+	// SAFETY: Send to channel outside the lock to avoid deadlock.
+	// Increment wg for each task as we send to avoid hanging if interrupted.
+	// The channel is guaranteed to stay open because closeCH() is only called
+	// after wg.Wait() completes.
 	for _, task := range tasks {
 		j.mu.Lock()
 		if j.closed {
@@ -162,8 +164,11 @@ func (q *EnJob) AddTask(task DeepSearchTask) {
 	taskCh := q.taskCh
 	q.mu.Unlock()
 	
-	// Send to channel outside the lock to avoid deadlock
-	// The channel is guaranteed to be open because wg was incremented
+	// SAFETY: Send to channel outside the lock to avoid deadlock.
+	// This is safe because we incremented the wait group before releasing the lock.
+	// The channel won't be closed until wg.Wait() completes, which won't happen
+	// until wg.Done() is called for this task. Therefore, the channel is
+	// guaranteed to be open at this point.
 	taskCh <- task
 }
 
