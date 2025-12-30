@@ -148,11 +148,19 @@
 
 ### 使用MCP
 
-开启MCP服务器，将会监听本地的 http://localhost:8080
+开启MCP服务器，默认将会监听配置文件中指定的端口（默认为 http://localhost:8080）
 
 ```
 ./enscan --mcp
 ```
+
+也可以通过 `--mcp-port` 参数指定监听端口：
+
+```
+./enscan --mcp --mcp-port 9090
+```
+
+这样MCP服务器将会监听在 http://localhost:9090
 
 以 Cherry Studio 配置为例
 
