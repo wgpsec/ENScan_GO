@@ -294,6 +294,8 @@ func DeduplicateMapList(dataType string, data []map[string]string) []map[string]
 		return data
 	}
 
+	originalCount := len(data)
+
 	// 定义不同数据类型的唯一标识字段组合
 	var keyFields []string
 	switch dataType {
@@ -346,14 +348,32 @@ func DeduplicateMapList(dataType string, data []map[string]string) []map[string]
 		}
 	}
 
+	// 记录去重统计信息
+	duplicateCount := originalCount - len(result)
+	if duplicateCount > 0 {
+		gologger.Debug().Msgf("⌈%s⌋ 去重: 原始 %d 条，去重后 %d 条，移除重复 %d 条", dataType, originalCount, len(result), duplicateCount)
+	}
+
 	return result
 }
 
 // DeduplicateData 对整个数据集进行去重
 func DeduplicateData(data map[string][]map[string]string) map[string][]map[string]string {
 	result := make(map[string][]map[string]string)
+	totalOriginal := 0
+	totalDeduplicated := 0
+
 	for dataType, items := range data {
+		originalCount := len(items)
+		totalOriginal += originalCount
 		result[dataType] = DeduplicateMapList(dataType, items)
+		totalDeduplicated += len(result[dataType])
 	}
+
+	totalRemoved := totalOriginal - totalDeduplicated
+	if totalRemoved > 0 {
+		gologger.Info().Msgf("数据去重完成: 原始 %d 条，去重后 %d 条，移除重复 %d 条", totalOriginal, totalDeduplicated, totalRemoved)
+	}
+
 	return result
 }
