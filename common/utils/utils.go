@@ -285,3 +285,75 @@ func ExtractPortString(rawURL string) (string, error) {
 
 	return port, nil // port 已经是字符串
 }
+
+// DeduplicateMapList 对map列表进行去重
+// dataType: 数据类型，用于确定去重的关键字段
+// data: 待去重的数据列表
+func DeduplicateMapList(dataType string, data []map[string]string) []map[string]string {
+	if len(data) == 0 {
+		return data
+	}
+
+	// 定义不同数据类型的唯一标识字段组合
+	var keyFields []string
+	switch dataType {
+	case "enterprise_info", "invest", "branch", "holds", "supplier", "partner":
+		// 企业相关数据使用 PID 作为唯一标识
+		keyFields = []string{"pid"}
+	case "icp":
+		// ICP备案使用域名+备案号作为唯一标识
+		keyFields = []string{"domain", "icp"}
+	case "app":
+		// APP使用名称+Bundle ID作为唯一标识
+		keyFields = []string{"name", "bundle_id"}
+	case "wx_app", "wechat":
+		// 微信小程序和公众号使用名称作为唯一标识
+		keyFields = []string{"name"}
+	case "weibo":
+		// 微博使用链接作为唯一标识
+		keyFields = []string{"profile_url"}
+	case "job":
+		// 招聘信息使用职位名称+发布日期+地点作为唯一标识
+		keyFields = []string{"name", "publish_time", "location"}
+	case "copyright":
+		// 软件著作权使用登记号作为唯一标识
+		keyFields = []string{"reg_num"}
+	default:
+		// 默认使用名称作为唯一标识
+		keyFields = []string{"name"}
+	}
+
+	// 使用map记录已经出现过的记录
+	seen := make(map[string]bool)
+	result := make([]map[string]string, 0, len(data))
+
+	for _, item := range data {
+		// 生成唯一键
+		var keyParts []string
+		for _, field := range keyFields {
+			keyParts = append(keyParts, item[field])
+		}
+		key := strings.Join(keyParts, "|")
+
+		// 如果key为空（所有字段都为空）或者已经见过，跳过
+		if key == strings.Repeat("|", len(keyFields)-1) {
+			continue
+		}
+
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
+
+// DeduplicateData 对整个数据集进行去重
+func DeduplicateData(data map[string][]map[string]string) map[string][]map[string]string {
+	result := make(map[string][]map[string]string)
+	for dataType, items := range data {
+		result[dataType] = DeduplicateMapList(dataType, items)
+	}
+	return result
+}

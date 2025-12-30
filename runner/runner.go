@@ -322,6 +322,8 @@ func (q *ESJob) StartENWorkers() {
 					q.mu.Lock()
 					for key, newResults := range data {
 						q.dt[key] = append(q.dt[key], newResults...)
+						// 实时去重，避免重复数据积累
+						q.dt[key] = utils.DeduplicateMapList(key, q.dt[key])
 					}
 					q.mu.Unlock()
 				}
@@ -341,7 +343,9 @@ func (q *ESJob) StartENWorkers() {
 }
 
 func (q *ESJob) OutFileByEnInfo(name string) error {
-	err := common.OutFileByEnInfo(q.dt, name, q.op.OutPutType, q.op.Output)
+	// 导出前进行最终去重
+	deduplicatedData := utils.DeduplicateData(q.dt)
+	err := common.OutFileByEnInfo(deduplicatedData, name, q.op.OutPutType, q.op.Output)
 	if err != nil {
 		gologger.Info().Msgf("尝试导出文件失败: %v", err)
 		return err
@@ -350,7 +354,8 @@ func (q *ESJob) OutFileByEnInfo(name string) error {
 }
 
 func (q *ESJob) OutDataByEnInfo() map[string][]map[string]string {
-	return q.dt
+	// API模式返回去重后的数据
+	return utils.DeduplicateData(q.dt)
 }
 
 func (j *ESJob) saveCacheToGob() error {
