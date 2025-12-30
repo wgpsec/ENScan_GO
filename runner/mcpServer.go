@@ -187,6 +187,12 @@ func McpServer(options *common.ENOptions) {
 	if options.McpPort != "" {
 		// 使用命令行指定的端口
 		port = options.McpPort
+		// 验证端口号是否有效
+		portNum, err := strconv.Atoi(port)
+		if err != nil || portNum < 1 || portNum > 65535 {
+			gologger.Error().Msgf("MCP服务启动失败！")
+			gologger.Fatal().Msgf("无效的端口号: %s (端口号必须在 1-65535 之间)", port)
+		}
 		baseURL = "http://localhost:" + port
 		gologger.Info().Msgf("使用命令行指定的端口: %s", port)
 	} else {
