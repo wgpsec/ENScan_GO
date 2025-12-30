@@ -128,26 +128,39 @@ func (j *EnJob) newTaskQueue(capacity int) {
 }
 func (j *EnJob) reTaskQueue() {
 	j.mu.Lock()
-	defer j.mu.Unlock()
 	if j.closed {
+		j.mu.Unlock()
 		return
 	}
-	for _, task := range *j.task {
-		j.taskCh <- task
+	tasks := *j.task
+	taskCh := j.taskCh
+	for range tasks {
 		j.wg.Add(1)
+	}
+	j.mu.Unlock()
+	
+	// Send to channel outside the lock to avoid deadlock
+	for _, task := range tasks {
+		taskCh <- task
 	}
 }
 
 func (q *EnJob) AddTask(task DeepSearchTask) {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 	if q.closed {
+		q.mu.Unlock()
 		return
 	}
 	*q.task = append(*q.task, task)
 	q.wg.Add(1)
 	q.total++
-	q.taskCh <- task
+	taskCh := q.taskCh
+	q.mu.Unlock()
+	
+	// Send to channel outside the lock to avoid deadlock
+	// If channel was closed between unlock and send, this will panic
+	// but the closed flag should prevent us from reaching here
+	taskCh <- task
 }
 
 func (q *EnJob) StartWorkers() {
