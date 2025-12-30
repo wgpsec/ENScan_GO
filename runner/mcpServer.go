@@ -180,12 +180,28 @@ func McpServer(options *common.ENOptions) {
 		),
 	), getInfoByKeyword(enTask))
 	enTask.StartENWorkers()
-	sseServer := server.NewSSEServer(s, server.WithBaseURL(options.ENConfig.Api.Mcp))
-	port, err := utils.ExtractPortString(options.ENConfig.Api.Mcp)
-	if err != nil {
-		gologger.Error().Msgf("MCP服务启动失败！")
-		gologger.Fatal().Msgf(err.Error())
+	
+	// 确定使用的端口：优先使用命令行参数，其次使用配置文件
+	var port string
+	var baseURL string
+	if options.McpPort != "" {
+		// 使用命令行指定的端口
+		port = options.McpPort
+		baseURL = "http://localhost:" + port
+		gologger.Info().Msgf("使用命令行指定的端口: %s", port)
+	} else {
+		// 使用配置文件中的URL和端口
+		baseURL = options.ENConfig.Api.Mcp
+		var err error
+		port, err = utils.ExtractPortString(baseURL)
+		if err != nil {
+			gologger.Error().Msgf("MCP服务启动失败！")
+			gologger.Fatal().Msgf(err.Error())
+		}
+		gologger.Info().Msgf("使用配置文件中的端口: %s", port)
 	}
+	
+	sseServer := server.NewSSEServer(s, server.WithBaseURL(baseURL))
 	gologger.Info().Msgf("SSE server listening on :" + port)
 	if err := sseServer.Start(":" + port); err != nil {
 		log.Fatalf("Server error: %v", err)

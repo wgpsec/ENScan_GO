@@ -50,6 +50,7 @@ func Flag(Info *ENOptions) {
 	flag.BoolVar(&Info.IsGroup, "is-group", false, "查询关键词为集团")
 	flag.BoolVar(&Info.IsApiMode, "api", false, "API模式运行")
 	flag.BoolVar(&Info.IsMCPServer, "mcp", false, "MCP模式运行")
+	flag.StringVar(&Info.McpPort, "mcp-port", "", "MCP服务器监听端口 eg 8080")
 	flag.BoolVar(&Info.ISKeyPid, "is-pid", false, "批量查询文件是否为公司PID")
 	flag.IntVar(&Info.DelayTime, "delay", 0, "每个请求延迟（S）-1为随机延迟1-5S")
 	flag.StringVar(&Info.Proxy, "proxy", "", "设置代理")

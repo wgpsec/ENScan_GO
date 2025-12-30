@@ -47,8 +47,9 @@ type ENOptions struct {
 	OutPutType       string // 导出文件类型
 	IsApiMode        bool
 	IsMCPServer      bool
-	IsPlugins        bool // 是否作为后置插件查询
-	IsFast           bool // 是否快速查询
+	McpPort          string // MCP服务器监听端口
+	IsPlugins        bool   // 是否作为后置插件查询
+	IsFast           bool   // 是否快速查询
 	ENConfig         *ENConfig
 	BranchFilter     string
 	NameFilterRegexp *regexp.Regexp
