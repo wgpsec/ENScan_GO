@@ -52,10 +52,11 @@ func (h *TycAPI) GetCompanyBaseInfoById(pid string) (gjson.Result, map[string]*c
 func (h *TycAPI) GetInfoByPage(pid string, page int, em *common.EnsGo) (info common.InfoPage, err error) {
 	uv := em.Api + "?keyword=" + pid + "&page=" + strconv.Itoa(page)
 	res := gjson.Get(h.req(uv), "result")
+	items := res.Get("items").Array()
 	info = common.InfoPage{
-		Size:  20,
+		Size:  int64(len(items)),
 		Total: res.Get("total").Int(),
-		Data:  res.Get("items").Array(),
+		Data:  items,
 	}
 	return info, err
 }
