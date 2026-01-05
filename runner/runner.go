@@ -3,6 +3,12 @@ package runner
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"time"
+
 	"github.com/tidwall/gjson"
 	"github.com/wgpsec/ENScan/common"
 	"github.com/wgpsec/ENScan/common/gologger"
@@ -14,11 +20,6 @@ import (
 	"github.com/wgpsec/ENScan/internal/riskbird"
 	"github.com/wgpsec/ENScan/internal/tianyancha"
 	"github.com/wgpsec/ENScan/internal/tycapi"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"time"
 )
 
 type EnJob struct {
@@ -155,6 +156,15 @@ func (q *ESJob) processTask(task ENJobTask) {
 		enJob.job = job
 	} else {
 		gologger.Error().Msgf("未找到 %s 任务模式", task.Typ)
+		// 如果既没有app也没有job，说明任务类型不支持，应该跳过
+		enJob.enWg.Done()
+		// 创建一个空的结果数据，避免程序卡住
+		rdata := map[string][]map[string]string{
+			"enterprise_info": {},
+		}
+		q.ch <- rdata
+		q.wg.Done()
+		return
 	}
 	enJob.startCH()
 	// 如果是插件模式就不需要获取企业信息

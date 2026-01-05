@@ -1,11 +1,12 @@
 package common
 
 import (
-	"github.com/tidwall/gjson"
-	"github.com/wgpsec/ENScan/common/utils"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/tidwall/gjson"
+	"github.com/wgpsec/ENScan/common/utils"
 )
 
 var (
@@ -177,7 +178,7 @@ var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", 
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var DeepSearch = []string{"invest", "branch", "holds", "supplier"}
-var ENSTypes = []string{"aqc", "xlb", "qcc", "tyc", "kc", "tycapi", "rb"}
+var ENSTypes = []string{"aqc", "tyc", "kc", "tycapi", "rb"}
 var ENSApps = []string{"miit"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
