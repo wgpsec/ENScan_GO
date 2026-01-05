@@ -36,6 +36,7 @@ type EnJob struct {
 	data      map[string][]gjson.Result
 	taskCh    chan DeepSearchTask
 	dataCh    chan map[string][]gjson.Result
+	closed    bool
 }
 type ENJobTask struct {
 	Keyword string `json:"keyword"`

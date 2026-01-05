@@ -91,14 +91,17 @@ func (j *EnJob) startCH() {
 
 }
 func (j *EnJob) closeCH() {
-	close(j.dataCh)
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.taskCh != nil {
-		close(j.taskCh)
-	}
-	if j.Done != nil {
-		close(j.Done)
+	if !j.closed {
+		j.closed = true
+		close(j.dataCh)
+		if j.taskCh != nil {
+			close(j.taskCh)
+		}
+		if j.Done != nil {
+			close(j.Done)
+		}
 	}
 }
 
@@ -124,19 +127,49 @@ func (j *EnJob) newTaskQueue(capacity int) {
 	j.Done = make(chan struct{})
 }
 func (j *EnJob) reTaskQueue() {
-	for _, task := range *j.task {
-		j.taskCh <- task
+	j.mu.Lock()
+	if j.closed {
+		j.mu.Unlock()
+		return
+	}
+	tasks := *j.task
+	taskCh := j.taskCh
+	j.mu.Unlock()
+	
+	// SAFETY: Send to channel outside the lock to avoid deadlock.
+	// Increment wg for each task as we send to avoid hanging if interrupted.
+	// The channel is guaranteed to stay open because closeCH() is only called
+	// after wg.Wait() completes.
+	for _, task := range tasks {
+		j.mu.Lock()
+		if j.closed {
+			j.mu.Unlock()
+			break
+		}
 		j.wg.Add(1)
+		j.mu.Unlock()
+		taskCh <- task
 	}
 }
 
 func (q *EnJob) AddTask(task DeepSearchTask) {
-	q.taskCh <- task
 	q.mu.Lock()
-	defer q.mu.Unlock()
+	if q.closed {
+		q.mu.Unlock()
+		return
+	}
 	*q.task = append(*q.task, task)
 	q.wg.Add(1)
 	q.total++
+	taskCh := q.taskCh
+	q.mu.Unlock()
+	
+	// SAFETY: Send to channel outside the lock to avoid deadlock.
+	// This is safe because we incremented the wait group before releasing the lock.
+	// The channel won't be closed until wg.Wait() completes, which won't happen
+	// until wg.Done() is called for this task. Therefore, the channel is
+	// guaranteed to be open at this point.
+	taskCh <- task
 }
 
 func (q *EnJob) StartWorkers() {
