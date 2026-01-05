@@ -119,8 +119,16 @@ func (h *TYC) searchBaseInfo(pid string, tds bool, options *common.ENOptions) (r
 		urls := "https://www.tianyancha.com/company/" + pid
 		body := h.GetReqReturnPage(urls)
 		htmlInfos := htmlquery.FindOne(body, "//*[@id=\"__NEXT_DATA__\"]")
+		if htmlInfos == nil {
+			gologger.Error().Msgf("【TYC】COOKIE检查失效，请检查COOKIE是否正确！\n")
+			return gjson.Result{}, gjson.Result{}
+		}
 		enInfo := gjson.Parse(htmlquery.InnerText(htmlInfos))
 		enInfoD := enInfo.Get("props.pageProps.dehydratedState.queries").Array()
+		if len(enInfoD) == 0 {
+			gologger.Error().Msgf("【TYC】无法解析企业信息，请检查COOKIE是否正确！\n")
+			return gjson.Result{}, gjson.Result{}
+		}
 		result = enInfoD[0].Get("state.data.data")
 		//数量统计 API base_count
 		for i := 0; i < len(enInfoD); i++ {
