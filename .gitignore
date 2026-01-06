@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+ENScan
 
 .idea
 # Test binary, built with `go test -c`

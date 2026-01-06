@@ -12,6 +12,11 @@ import (
 
 // SearchByKeyWord 根据关键词筛选公司
 func (j *EnJob) SearchByKeyWord(keyword string) (string, error) {
+	if j.job == nil {
+		err := fmt.Errorf("job is nil, cannot search by keyword")
+		gologger.Error().Msg(err.Error())
+		return "", err
+	}
 	enList, err := j.job.AdvanceFilter(keyword)
 	if err != nil {
 		gologger.Error().Msg(err.Error())
@@ -157,6 +162,12 @@ func (j *EnJob) getInfoList(pid string, em *common.EnsGo, sk string, ref string)
 
 // processTask 处理企业关系任务，进行关联查询
 func (j *EnJob) processTask(task DeepSearchTask) {
+	// 如果job为nil，无法继续处理
+	if j.job == nil {
+		gologger.Error().Msgf("job is nil, cannot process task for %s", task.Name)
+		j.wg.Done()
+		return
+	}
 	gologger.Info().Msgf("【%d,%d】正在获取⌈%s⌋信息，关联原因 %s", j.processed, j.total, task.Name, task.Ref)
 	data := j.getCompanyInfoById(task.Pid, task.SearchList, task.Ref)
 	j.wg.Done()
